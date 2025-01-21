@@ -1,0 +1,16 @@
+[project]
+name = "solafune-deforestation"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "ipykernel>=6.29.5",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.0",
+    "numpy>=2.2.2",
+    "pandas>=2.2.3",
+    "pickleshare>=0.7.5",
+    "scikit-learn>=1.6.1",
+    "scipy>=1.15.1",
+]

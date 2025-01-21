@@ -2,9 +2,22 @@
 
 ## setting up the environment
 
-```conda env create -f environment.yml -n solafune-deforestation```
+[uv](https://docs.astral.sh/uv/) handles dependencies and is needed to run the project
 
-```conda activate solafune-deforestation```
+### MacOS:
+Download uv on macOS:
+
+**with brew**:
+
+```brew install uv```
+
+**with curl**:
+
+```curl -LsSf https://astral.sh/uv/install.sh | sh```
+
+### Running the project
+
+```uv run```
 
 ## DONE
 
