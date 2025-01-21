@@ -13,4 +13,5 @@ dependencies = [
     "pickleshare>=0.7.5",
     "scikit-learn>=1.6.1",
     "scipy>=1.15.1",
+    "solafune-tools>=0.4.2",
 ]
