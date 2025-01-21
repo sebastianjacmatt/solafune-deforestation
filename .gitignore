@@ -1,0 +1,12 @@
+# Ignore large data files
+train_images/
+evaluation_images/
+*.zip
+
+# Ignore intermediate files
+*.pyc
+__pycache__/
+*.log
+
+# Ignore saved models
+models/
