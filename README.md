@@ -5,3 +5,4 @@
 ## TODO
 
 - download images
+- setup enviornmet & gitnore
