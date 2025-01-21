@@ -10,3 +10,7 @@ __pycache__/
 
 # Ignore saved models
 models/
+
+# Ignore uv env
+.venv
+uv.lock
