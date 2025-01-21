@@ -1,8 +1,8 @@
-name: INF265
+name: solafune-deforestation
 channels:
   - defaults
 dependencies:
-  - python=3.12
+  - python=3.11
   - numpy
   - scipy
   - scikit-learn
