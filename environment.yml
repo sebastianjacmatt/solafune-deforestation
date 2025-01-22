@@ -1,0 +1,16 @@
+name: solafune-deforestation
+channels:
+  - defaults
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - scikit-learn
+  - pandas
+  - jupyter
+  - ipykernel
+  - pickleshare
+  - matplotlib
+  - pathlib
+  - libtiff # needed to open multi channel images
+  - tifffile # needed to open multi channel images
