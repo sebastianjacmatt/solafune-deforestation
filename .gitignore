@@ -1,4 +1,5 @@
 # Ignore large data files
+data/
 train_images/
 evaluation_images/
 *.zip
