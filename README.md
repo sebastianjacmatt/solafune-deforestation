@@ -41,11 +41,21 @@ Then you update the environment, make sure you are in the root directory and run
 
 ## TODO
 
-- download images
-- setup enviornmet & gitnore
-**Preprocessing**
-- polygon to pixel pixel to polygon
-**Model scheme**
+- Implement (https://github.com/motokimura/solafune_deforestation_baseline) in our structure
+- Use different a pretrained model that works better with sattelite data
+```py
+self.model = smp.create_model(
+            arch="unet",
+            encoder_name="tf_efficientnetv2_s",  # <-- this pre-trained model is trained on a dataset of [dogs](https://www.image-net.org/)💀
+            encoder_weights="imagenet",  # always starts from imagenet pre-trained weight
+            in_channels=12,
+            classes=4,
+        )
+```
+Try and produce some JSON data, and send in solution
+
+
+for later -->
 - UNET-convocational neural network scheme for segmentation
 - Transfer learning of a previosuly trained segmentation model (preferably one working with the same channels as the ones in solafune data)
 **Models Selection**
