@@ -4,11 +4,15 @@ import json
 import geopandas as gpd
 import numpy as np
 
-# Paths
-DATASET_PATH = '../../data'
-TRAIN_IMAGES_PATH = f'{DATASET_PATH}/train_images'
-EVAL_IMAGES_PATH = f'{DATASET_PATH}/evaluation_images'
-TRAIN_ANNOTATIONS_PATH = f'{DATASET_PATH}/train_annotations.json'
+import sys
+import os
+
+# Get the absolute path of the project's root directory
+BASE_DIR = os.path.abspath(os.path.dirname(__file__) + "/../..")
+sys.path.insert(0, BASE_DIR)  # Add project root to Python path
+
+from src.paths import DATASET_PATH, TRAIN_IMAGES_PATH, EVAL_IMAGES_PATH, TRAIN_ANNOTATIONS_PATH
+
 
 # Load annotations
 with open(TRAIN_ANNOTATIONS_PATH, 'r') as file:

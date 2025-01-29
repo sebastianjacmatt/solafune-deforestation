@@ -14,3 +14,6 @@ dependencies:
   - pathlib
   - libtiff # needed to open multi channel images
   - tifffile # needed to open multi channel images
+  - imagecodecs # needed to open multi channel images
+  - rasterio
+  - geopandas
