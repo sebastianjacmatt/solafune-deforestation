@@ -13,6 +13,8 @@ sys.path.insert(0, BASE_DIR)  # Add project root to Python path
 
 from src.paths import DATASET_PATH, TRAIN_IMAGES_PATH, EVAL_IMAGES_PATH, TRAIN_ANNOTATIONS_PATH
 
+from src.utilities import convert_to_geojson
+
 
 # Load annotations
 with open(TRAIN_ANNOTATIONS_PATH, 'r') as file:
@@ -48,31 +50,6 @@ for i in range(band_count):
 plt.tight_layout()
 plt.show()
 
-
-def convert_to_geojson(data):
-  """
-  Converts a list of dictionaries in the specified format to GeoJSON
-
-  Args:
-      data: A list of dictionaries containing 'class' and 'segmentation' keys
-
-  Returns:
-      A GeoJSON feature collection
-  """
-  features = []
-  for item in data:
-    polygon = []
-    for i in range(0, len(item['segmentation']), 2):
-      polygon.append([item['segmentation'][i], item['segmentation'][i+1]])
-    features.append({
-      "type": "Feature",
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [polygon]
-      },
-      "properties": {"class": item['class']}
-    })
-  return { "type": "FeatureCollection", "features": features}
 
 # Sample annotation data
 annotation_data = train_annotations['images'][0]['annotations']
