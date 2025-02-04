@@ -1,18 +1,19 @@
-import os
+from pathlib import Path
 
-# Get the absolute path of the project's root directory
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# Get the base directory of the project (one level above `src`)
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Paths to the dataset
-DATASET_PATH = os.path.join(BASE_DIR, "data")
-TRAIN_IMAGES_PATH = os.path.join(DATASET_PATH, "train_images")
-EVAL_IMAGES_PATH = os.path.join(DATASET_PATH, "evaluation_images")
-TRAIN_ANNOTATIONS_PATH = os.path.join(DATASET_PATH, "train_annotations.json")
+# Define dataset paths
+DATASET_PATH = BASE_DIR / "data"
+TRAIN_IMAGES_PATH = DATASET_PATH / "train_images"
+EVAL_IMAGES_PATH = DATASET_PATH / "evaluation_images"
+TRAIN_ANNOTATIONS_PATH = DATASET_PATH / "train_annotations.json"
+SAMPLE_ANSWER_PATH = DATASET_PATH / "sample_answer.json"
 
-# Outputs and models
-OUTPUTS_PATH = os.path.join(BASE_DIR, "outputs")
-MODELS_PATH = os.path.join(BASE_DIR, "models")
+# Define other paths
+MODELS_PATH = BASE_DIR / "src" / "models"
+OUTPUTS_PATH = BASE_DIR / "src" / "outputs"
 
-# Ensure directories exist
-os.makedirs(OUTPUTS_PATH, exist_ok=True)
-os.makedirs(MODELS_PATH, exist_ok=True)
+# Ensure directories exist where needed
+OUTPUTS_PATH.mkdir(parents=True, exist_ok=True)
+MODELS_PATH.mkdir(parents=True, exist_ok=True)
