@@ -13,6 +13,9 @@ SAMPLE_ANSWER_PATH = DATASET_PATH / "sample_answer.json"
 # Define other paths
 MODELS_PATH = BASE_DIR / "src" / "models"
 OUTPUTS_PATH = BASE_DIR / "src" / "outputs"
+PREDICTIONS_PATH = BASE_DIR / "src" / "outputs" / "predictions"
+VISUALIZATIONS_PATH = BASE_DIR / "src" / "outputs" / "visualizations"
+SUBMISSIONS_PATH = BASE_DIR / "src" / "outputs" / "submissions"
 
 # Ensure directories exist where needed
 OUTPUTS_PATH.mkdir(parents=True, exist_ok=True)
