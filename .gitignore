@@ -3,8 +3,8 @@ data/
 train_images/
 evaluation_images/
 *.zip
-outputs/predictions/val_preds
-outputs/visualizations/
+outputs/predictions/val_preds/*
+outputs/visualizations/*
 
 
 # Ignore intermediate files
@@ -12,8 +12,9 @@ outputs/visualizations/
 __pycache__/
 *.log
 
-# Ignore saved models
+# Ignore saved models and checkpoints
 models/v*
+models/checkpoints/*
 
 
 
