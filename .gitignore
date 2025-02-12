@@ -3,6 +3,9 @@ data/
 train_images/
 evaluation_images/
 *.zip
+outputs/predictions/val_preds
+outputs/visualizations/
+
 
 # Ignore intermediate files
 *.pyc
@@ -10,7 +13,9 @@ __pycache__/
 *.log
 
 # Ignore saved models
-models/
+models/v*
+
+
 
 # Ignore uv env
 .venv
