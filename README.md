@@ -39,6 +39,7 @@ Then you update the environment, make sure you are in the root directory and run
 
 ## DONE
 
+
 ## TODO
 
 - Implement (https://github.com/motokimura/solafune_deforestation_baseline) in our structure
@@ -52,7 +53,6 @@ self.model = smp.create_model(
             classes=4,
         )
 ```
-Try and produce some JSON data, and send in solution
 
 
 for later -->
