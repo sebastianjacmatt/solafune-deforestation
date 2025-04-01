@@ -12,10 +12,16 @@ import torch
 
 from torch.utils.data import DataLoader
 
-from dataset import TrainValDataset, FullOBADatasetMultiBand
+from dataset import TrainValDataset, OBAValDataset
 from config import SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL
-from global_paths import DATASET_PATH, TRAIN_OUTPUT_DIR
+from global_paths import DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH
 from model import Model
+
+
+sample_indices = list(range(176))
+train_indices, val_indices = train_test_split(
+    sample_indices, test_size=0.2, random_state=SEED
+)
 
 def get_augmentations():
     return A.Compose([
@@ -35,11 +41,6 @@ def get_augmentations():
     ])
 
 def prepare_dataloaders():
-    sample_indices = list(range(176))
-    train_indices, val_indices = train_test_split(
-        sample_indices, test_size=0.2, random_state=SEED
-    )
-
     train_dataset = TrainValDataset(
         data_root=DATASET_PATH,
         sample_indices=train_indices,
@@ -115,64 +116,31 @@ def train_model():
     return model, train_loader, val_loader, train_indices, val_indices
 
 
+def prepare_dataloaders_oba():
+    # Create an instance of FullOBADataset.
+    # oba_dataset = # Todo: (
+        # Todo:
+    #)
 
-from global_paths import DATASET_PATH, TRAIN_ANNOTATIONS_PATH
+    val_dataset = TrainValDataset(
+        data_root=DATASET_PATH,
+        sample_indices=val_indices,
+        augmentations=None
+    )
 
-
-sample_indices = list(range(176))
-train_indices, val_indices = train_test_split(
-    sample_indices, test_size=0.2, random_state=SEED
- )
-
-# Create an instance of FullOBADataset.
-full_oba_dataset = FullOBADatasetMultiBand(
-    data_root=str(DATASET_PATH),
-    json_file=str(TRAIN_ANNOTATIONS_PATH),  # Ensure this points to your JSON file with annotations.
-    sample_indices=train_indices,
-    IMG_ROW=128,
-    IMG_COL=128,
-    disable_shadows=True  # Disable shadow additions.
-)
-
-# Create a DataLoader.
-full_oba_loader = DataLoader(
-    full_oba_dataset,
-    batch_size=4,  # Adjust based on your GPU memory.
-    num_workers=4,
-    shuffle=True,
-    pin_memory=True,
-)
-
-# Now you can use full_oba_loader for training or visualization.
+    # Create a DataLoader.
+    oba_loader = DataLoader(
+    # Todo:
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=BATCH_SIZE_VAL,
+        num_workers=8,
+        shuffle=False,
+        pin_memory=True,
+        persistent_workers=True,
+    )
+    return oba_loader, val_loader, train_indices, val_indices
 
 
-import matplotlib.pyplot as plt
-
-def to_rgb(img):
-    """
-    Convert a 12-channel image (C, H, W) to an RGB image using Sentinel-2 natural color.
-    For Sentinel-2, natural color is typically: Red = channel 3, Green = channel 2, Blue = channel 1.
-    """
-    rgb = img[[3, 2, 1], :, :]
-    rgb = (rgb - rgb.min()) / (rgb.max() - rgb.min() + 1e-6)
-    return rgb.transpose(1, 2, 0)
-
-def visualize_fulloba_sample(dataset, index=0):
-    sample = dataset[index]
-    image = sample["image"]  # shape: (12, H, W)
-    mask = sample["mask"]    # shape: (4, H, W)
-    
-    fig, axes = plt.subplots(1, 5, figsize=(20, 5))
-    axes[0].imshow(to_rgb(image))
-    axes[0].set_title("FullOBA RGB")
-    axes[0].axis("off")
-    for i in range(mask.shape[0]):
-        axes[i+1].imshow(mask[i], cmap="gray")
-        axes[i+1].set_title(f"Mask: class {i}")
-        axes[i+1].axis("off")
-    plt.tight_layout()
-    plt.show()
-
-# Visualize sample index 0:
-visualize_fulloba_sample(full_oba_dataset, index=0)
 

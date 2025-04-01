@@ -72,7 +72,7 @@ oba_dataset = OBAValDataset(data_root=DATASET_PATH, sample_indices=sample_indice
                             use_oba=True, oba_prob=1.0)  # use 100% probability for testing
 
 # Visualize a sample from the original dataset
-visualize_sample(original_dataset, index=0)
+visualize_sample(original_dataset, index=1)
 
 # Visualize a sample from the OBA dataset
-visualize_sample(oba_dataset, index=0)
+visualize_sample(oba_dataset, index=1)

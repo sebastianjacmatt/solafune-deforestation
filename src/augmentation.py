@@ -2,19 +2,22 @@ from albumentations import (
     HorizontalFlip, ShiftScaleRotate, RandomRotate90, OneOf, Compose
 )
 from albumentations.augmentations.transforms import (
-    CLAHE, OpticalDistortion, RandomGamma,
-    MotionBlur, Sharpen, Blur, MedianBlur,
+    CLAHE,  RandomGamma,
+     Sharpen, #Blur, 
     RandomBrightnessContrast, GaussNoise,
+    #OpticalDistortion,
+    #MotionBlur,
+    #MedianBlur,
 )
 
 
 def augmentation(img, mask, color_aug_prob):
     transforms = [
         GaussNoise(p=1),
-        OpticalDistortion(p=1), 
+        #OpticalDistortion(p=1), 
         RandomBrightnessContrast(p=1),
         RandomGamma(p=1),
-        MotionBlur(p=1),
+        #Blur(p=1),
         Sharpen(p=1),  # <== replaces IAAEmboss
     ]
 
