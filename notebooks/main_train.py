@@ -16,7 +16,7 @@ from postprocess import detect_polygons, generate_submission
 
 def main():
     # 1) Train
-    model, train_loader, val_loader, train_indices, val_indices = train_model()
+    model, train_loader, val_loader, train_indices, val_indices = train_model(use_oba=True)
 
 
     # 2) Inference on val set

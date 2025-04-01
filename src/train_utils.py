@@ -102,8 +102,11 @@ def get_trainer():
     return trainer
 
 
-def train_model():
-    train_loader, val_loader, train_indices, val_indices = prepare_dataloaders()
+def train_model(use_oba=False):
+    if use_oba:
+        train_loader, val_loader, train_indices, val_indices = prepare_dataloaders_oba()
+    else:
+        train_loader, val_loader, train_indices, val_indices = prepare_dataloaders()
     model = Model()
     trainer = get_trainer()
 
@@ -116,21 +119,29 @@ def train_model():
     return model, train_loader, val_loader, train_indices, val_indices
 
 
-def prepare_dataloaders_oba():
-    # Create an instance of FullOBADataset.
-    # oba_dataset = # Todo: (
-        # Todo:
-    #)
-
+def prepare_dataloaders_oba(train_indices, val_indices):
+    # Use the OBA dataset for training and the original for validation
+    train_dataset = OBAValDataset(
+        data_root=DATASET_PATH,
+        sample_indices=train_indices,
+        annotations_path=TRAIN_ANNOTATIONS_PATH,
+        augmentations=get_augmentations(),
+        use_oba=True,
+        oba_prob=1.0  # Set to 100% for testing, then reduce later
+    )
     val_dataset = TrainValDataset(
         data_root=DATASET_PATH,
         sample_indices=val_indices,
         augmentations=None
     )
 
-    # Create a DataLoader.
-    oba_loader = DataLoader(
-    # Todo:
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE_TRAIN,
+        num_workers=8,
+        shuffle=True,
+        pin_memory=True,
+        persistent_workers=True,
     )
     val_loader = DataLoader(
         val_dataset,
@@ -140,7 +151,6 @@ def prepare_dataloaders_oba():
         pin_memory=True,
         persistent_workers=True,
     )
-    return oba_loader, val_loader, train_indices, val_indices
-
+    return train_loader, val_loader
 
 
