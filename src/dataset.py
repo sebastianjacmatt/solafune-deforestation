@@ -11,6 +11,8 @@ import oba
 
 from data_utils import load_image, load_mask, normalize_image
 
+from config import NUM_EVAL_INDICIES
+
 class TrainValDataset(Dataset):
     def __init__(self, data_root, sample_indices, augmentations=None):
         """
@@ -60,7 +62,7 @@ class TestDataset(Dataset):
         data_root: Path to dataset containing evaluation_images dir
         """
         self.image_paths = [
-            data_root / "evaluation_images" / f"evaluation_{i}.tif" for i in range(118)
+            data_root / "evaluation_images" / f"evaluation_{i}.tif" for i in range(NUM_EVAL_INDICIES)
         ]
 
     def __len__(self):

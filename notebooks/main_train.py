@@ -8,7 +8,7 @@ torch.set_float32_matmul_precision("high")
 from train_utils import train_model
 from global_paths import TRAIN_OUTPUT_DIR, VAL_PRED_DIR, TEST_PRED_DIR, SUBMISSION_SAVE_PATH, DATASET_PATH
 from model import Model
-from config import SCORE_THRESH, MIN_AREA
+from config import SCORE_THRESH, MIN_AREA, NUM_WORKERS_TEST, BATCH_SIZE_TEST
 from dataset import TestDataset
 from torch.utils.data import DataLoader
 from inference_utils import run_inference
@@ -24,7 +24,7 @@ def main():
 
     # 3) Inference on test set
     test_dataset = TestDataset(DATASET_PATH)
-    test_loader = DataLoader(test_dataset, batch_size=4, num_workers=8, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE_TEST, num_workers=NUM_WORKERS_TEST, shuffle=False)
     run_inference(model, test_loader, TEST_PRED_DIR)
 
     # 4) Postprocess (detect polygons, generate JSON)

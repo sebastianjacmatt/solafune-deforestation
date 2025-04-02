@@ -1,12 +1,27 @@
-EPOCHS = 200
+EPOCHS = 10
 SEED = 42
-BATCH_SIZE_TRAIN = 16
-BATCH_SIZE_VAL = 4
+
 CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
+
+# Number of sample indicies (train / val), default: 176, else less for testing
+NUM_SAMPLE_INDICIES = 5
+
+# Number of eval indicie, default: 118, else less for testing
+NUM_EVAL_INDICIES = 118
 
 # threshold / area for post-processing
 SCORE_THRESH = 0.5
-MIN_AREA = 10000
+MIN_AREA = 20000
+
+# Batch sizes
+BATCH_SIZE_TRAIN = 16
+BATCH_SIZE_VAL = 4
+BATCH_SIZE_TEST = 4
+
+# Number of workers
+NUM_WORKERS_TRAIN = 8
+NUM_WORKERS_VAL = 8
+NUM_WORKERS_TEST = 8
 
 # For normalizing 12-band images
 MEAN = [

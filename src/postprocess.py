@@ -12,48 +12,52 @@ from shapely.geometry import shape
 from skimage import measure
 from rasterio import features
 
-from config import CLASS_NAMES, SCORE_THRESH, MIN_AREA
+import concurrent.futures
 
-def detect_polygons(pred_dir, score_thresh=SCORE_THRESH, min_area=MIN_AREA):
+from config import CLASS_NAMES, SCORE_THRESH, MIN_AREA, NUM_EVAL_INDICIES
+
+
+def detect_polygons(pred_dir, score_thresh, min_area):
     pred_dir = Path(pred_dir)
-    pred_paths = sorted(pred_dir.glob("*.npy"))
+    pred_paths = list(pred_dir.glob("*.npy"))
+    pred_paths = sorted(pred_paths)
 
     polygons_all_imgs = {}
     for pred_path in tqdm(pred_paths, desc="Detect Polygons"):
-        mask = np.load(pred_path)  # shape: (4, 1024, 1024)
-        mask = mask > score_thresh
+        polygons_all_classes = {}
 
-        polygons_for_img = {}
+        mask = np.load(pred_path)  # (4, 1024, 1024)
+        mask = mask > score_thresh  # binarize
         for i, class_name in enumerate(CLASS_NAMES):
-            mask_class = mask[i]
-            # Remove small areas
-            if mask_class.sum() < min_area:
-                mask_class = np.zeros_like(mask_class)
+            mask_for_a_class = mask[i]
+            if mask_for_a_class.sum() < min_area:
+                mask_for_a_class = np.zeros_like(mask_for_a_class)  # set all to zero if the predicted area is less than `min_area`
 
-            label = measure.label(mask_class, connectivity=2, background=0).astype(np.uint8)
-            polygons_list = []
-            for p, value in features.shapes(label, label=label):
-                # shapely geometry
-                poly = shape(p).buffer(0.5).simplify(tolerance=0.5)
-                polygons_list.append(poly)
-            polygons_for_img[class_name] = polygons_list
-
-        # record polygons
-        polygons_all_imgs[pred_path.name.replace(".npy", ".tif")] = polygons_for_img
+            # extract polygons from the binarized mask
+            label = measure.label(mask_for_a_class, connectivity=2, background=0).astype(np.uint8)
+            polygons = []
+            for p, value in features.shapes(label, label):
+                # p = shape(p).buffer(0.5)
+                p = p.simplify(tolerance=0.5)
+                polygons.append(p)
+            polygons_all_classes[class_name] = polygons
+        polygons_all_imgs[pred_path.name.replace(".npy", ".tif")] = polygons_all_classes
 
     return polygons_all_imgs
 
 def generate_submission(test_pred_polygons, save_path):
     images = []
-    for file_name in sorted(test_pred_polygons.keys()):
+    for img_id in range(NUM_EVAL_INDICIES):  # evaluation_0.tif to evaluation_117.tif
         annotations = []
         for class_name in CLASS_NAMES:
-            for poly in test_pred_polygons[file_name][class_name]:
-                seg = []
+            for poly in test_pred_polygons[f"evaluation_{img_id}.tif"][class_name]:
+                seg: list[float] = []  # [x0, y0, x1, y1, ..., xN, yN]
                 for xy in poly.exterior.coords:
                     seg.extend(xy)
+
                 annotations.append({"class": class_name, "segmentation": seg})
-        images.append({"file_name": file_name, "annotations": annotations})
+
+        images.append({"file_name": f"evaluation_{img_id}.tif", "annotations": annotations})
 
     with open(save_path, "w", encoding="utf-8") as f:
         json.dump({"images": images}, f, indent=4)
