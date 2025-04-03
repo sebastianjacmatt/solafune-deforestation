@@ -13,7 +13,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import TrainValDataset, OBAValDataset
-from config import SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES, NUM_WORKERS_TRAIN, NUM_WORKERS_VAL
+from config import SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES, NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS
 from global_paths import DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH
 from model import Model
 
@@ -57,16 +57,16 @@ def prepare_dataloaders():
         batch_size=BATCH_SIZE_TRAIN,
         num_workers=NUM_WORKERS_TRAIN,
         shuffle=True,
-        pin_memory=True,
-        persistent_workers=True,
+        pin_memory=PIN_MEMORY,
+        persistent_workers=PERSISTNAT_WORKERS,
     )
     val_loader = DataLoader(
         val_dataset,
         batch_size=BATCH_SIZE_VAL,
         num_workers=NUM_WORKERS_VAL,
         shuffle=False,
-        pin_memory=True,
-        persistent_workers=True,
+        pin_memory=PIN_MEMORY,
+        persistent_workers=PERSISTNAT_WORKERS,
     )
     return train_loader, val_loader
 
@@ -140,16 +140,16 @@ def prepare_dataloaders_oba():
         batch_size=BATCH_SIZE_TRAIN,
         num_workers=NUM_WORKERS_TRAIN,
         shuffle=True,
-        pin_memory=True,
-        persistent_workers=True,
+        pin_memory=PIN_MEMORY,
+        persistent_workers=PERSISTNAT_WORKERS,
     )
     val_loader = DataLoader(
         val_dataset,
         batch_size=BATCH_SIZE_VAL,
         num_workers=NUM_WORKERS_VAL,
         shuffle=False,
-        pin_memory=True,
-        persistent_workers=True,
+        pin_memory=PIN_MEMORY,
+        persistent_workers=PERSISTNAT_WORKERS,
     )
     return train_loader, val_loader
 

@@ -1,0 +1,29 @@
+name: Environment Setup
+
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'environment.yml'
+
+jobs:
+  setup-env:
+    name: Conda setup on ${{ matrix.os }} (Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["macos-latest", "windows-latest"]
+        python-version: ["3.8"]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: anaconda-client-env
+          environment-file: environment.yml
+          python-version: ${{ matrix.python-version }}
+          auto-activate-base: false
+      - run: |
+          conda info
+          conda list
