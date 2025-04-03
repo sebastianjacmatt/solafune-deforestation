@@ -1,31 +1,47 @@
 name: solafune-deforestation
+
 channels:
-  - pytorch
-  - conda-forge
-  - defaults
+  - pytorch         # Official PyTorch channel (CPU/GPU versions)
+  - conda-forge     # Broad, community-maintained packages — more up-to-date and portable
+  - defaults        # Official Anaconda channel (fallback)
+
 dependencies:
-  - python=3.8
-  - numpy=1.26.4
-  - pandas
-  - scikit-learn
-  - matplotlib
-  - scikit-image
-  - tifffile
-  - rasterio=1.3.6
-  - shapely=2.0.1
-  - tqdm
-  - albumentations=1.4.24
-  - imagecodecs
-  - opencv
-  - pytorch=2.5.1
-  - torchvision=0.15.2
-  - torchaudio=2.5.1
-  - pytorch-lightning=2.5.0.post0
-  - segmentation-models-pytorch=0.3.4
-  - timm=0.9.7
-  - tensorboard
-  - pip
+  # Python version (older 3.8 version = broader compatibility, but you could bump to 3.10+ if needed)
+  - python=3.8      
+
+  # Core numerical and scientific stack
+  - numpy           # Fast numerical arrays, cross-platform
+  - pandas          # DataFrames and tabular data
+  - scikit-learn    # Classical ML models
+  - matplotlib      # Plotting
+  - scikit-image    # Image processing
+  - tifffile        # Reading TIFF images (often needed for satellite imagery)
+
+  # Geospatial / satellite data
+  - rasterio        # Geospatial raster I/O; can be finicky on Windows if pinned too tightly
+  - shapely         # Geometry objects and spatial operations
+
+  # Usability / speed
+  - tqdm            # Progress bars in loops
+
+  # Data augmentation
+  - albumentations  # Advanced image augmentation (version pinned to avoid breaking changes)
+
+  # PyTorch stack (🧠 ML backbone)
+  - pytorch         # CPU version will be installed automatically unless CUDA is available
+  - torchvision    # Models and image preprocessing for PyTorch
+
+  # Model training & utilities
+  - pytorch-lightning     # High-level wrapper for PyTorch training loops
+  - segmentation-models-pytorch=0.3.4  # Predefined semantic segmentation models using PyTorch
+  - timm             # PyTorch image models (transformers, convnets, etc.)
+  - tensorboard            # Visualization for training logs
+
+  # Ensures pip is available for pip-only installs below
+  - pip                   
+
+  # Packages not available on conda (install via pip)
   - pip:
-      - albucore==0.0.23
-      - annotated-types==0.7.0
-      - astunparse==1.6.3
+      # - albucore            # Not on conda, related to albumentations config/metadata
+      # - annotated-types      # Typing support, required by some ML libs
+      # - astunparse==1.6.3           # Parses and un-parses Python ASTs (used by TensorFlow and similar frameworks)
