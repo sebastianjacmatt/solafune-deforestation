@@ -1,0 +1,28 @@
+name: Check Conda Environment Build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v2
+      with:
+        auto-update-conda: true
+        python-version: 3.10
+        channels: conda-forge
+        activate-environment: base
+
+    - name: Install dependencies
+      shell: bash  # important for compatibility
+      run: |
+        conda env update --file environment.yml --name base
