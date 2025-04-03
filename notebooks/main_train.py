@@ -12,11 +12,11 @@ from config import SCORE_THRESH, MIN_AREA, NUM_WORKERS_TEST, BATCH_SIZE_TEST
 from dataset import TestDataset
 from torch.utils.data import DataLoader
 from inference_utils import run_inference
-from postprocess import detect_polygons, generate_submission
+from postprocess import PostProcess
 
 def main():
     # 1) Train
-    model, train_loader, val_loader = train_model(use_oba=True)
+    model, train_loader, val_loader = train_model(use_oba=False)
 
 
     # 2) Inference on val set
@@ -26,14 +26,16 @@ def main():
     test_dataset = TestDataset(DATASET_PATH)
     test_loader = DataLoader(test_dataset, batch_size=BATCH_SIZE_TEST, num_workers=NUM_WORKERS_TEST, shuffle=False)
     run_inference(model, test_loader, TEST_PRED_DIR)
-
+    
     # 4) Postprocess (detect polygons, generate JSON)
-    test_pred_polygons = detect_polygons(
-        pred_dir=TEST_PRED_DIR,
+    post = PostProcess(
+        pred_dir=VAL_PRED_DIR,
         score_thresh=SCORE_THRESH,
-        min_area=MIN_AREA
+        min_area=MIN_AREA,
+        save_path=SUBMISSION_SAVE_PATH,
     )
-    generate_submission(test_pred_polygons, SUBMISSION_SAVE_PATH)
+
+    post.generate_submission()
 
 if __name__ == "__main__":
     main()
