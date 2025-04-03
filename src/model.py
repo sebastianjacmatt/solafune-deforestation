@@ -27,6 +27,10 @@ class Model(pl.LightningModule):
             classes=4,
         )
 
+        # freeze pre-trained encoder weights
+        for param in self.model.encoder.parameters():
+            param.requires_grad = False
+
         # define loss functions
         self.dice_loss_fn = smp.losses.DiceLoss(
             mode=smp.losses.MULTILABEL_MODE, from_logits=True

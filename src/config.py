@@ -1,7 +1,7 @@
 EPOCHS = 200
 SEED = 42
-BATCH_SIZE_TRAIN = 16
-BATCH_SIZE_VAL = 4
+BATCH_SIZE_TRAIN = 32
+BATCH_SIZE_VAL = 8
 CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
 
 # threshold / area for post-processing

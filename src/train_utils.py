@@ -54,7 +54,7 @@ def prepare_dataloaders():
     train_loader = DataLoader(
         train_dataset,
         batch_size=BATCH_SIZE_TRAIN,
-        num_workers=8,
+        num_workers=1,
         shuffle=True,
         pin_memory=True,
         persistent_workers=True,
@@ -62,7 +62,7 @@ def prepare_dataloaders():
     val_loader = DataLoader(
         val_dataset,
         batch_size=BATCH_SIZE_VAL,
-        num_workers=8,
+        num_workers=1,
         shuffle=False,
         pin_memory=True,
         persistent_workers=True,
@@ -92,11 +92,11 @@ def get_trainer():
         deterministic=True,
         benchmark=False,
         sync_batchnorm=False,
-        check_val_every_n_epoch=5,
+        check_val_every_n_epoch=1,
         default_root_dir=".",
-        accelerator="gpu",
+        accelerator="cpu",
         devices=1,
-        log_every_n_steps=5,
+        log_every_n_steps=1,
     )
     return trainer
 

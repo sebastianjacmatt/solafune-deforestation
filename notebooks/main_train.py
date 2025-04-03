@@ -1,5 +1,6 @@
 import sys
 import os
+os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(os.path.join(project_root, "src"))
 
