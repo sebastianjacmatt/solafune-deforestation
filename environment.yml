@@ -1,47 +1,25 @@
-name: solafune-deforestation
+name: solafune-deforestation-cpu
 
 channels:
-  - pytorch         # Official PyTorch channel (CPU/GPU versions)
-  - conda-forge     # Broad, community-maintained packages — more up-to-date and portable
-  - defaults        # Official Anaconda channel (fallback)
+  - pytorch         
+  - conda-forge     
+  - defaults        
 
 dependencies:
-  # Python version (older 3.8 version = broader compatibility, but you could bump to 3.10+ if needed)
-  - python=3.8      
-
-  # Core numerical and scientific stack
-  - numpy           # Fast numerical arrays, cross-platform
-  - pandas          # DataFrames and tabular data
-  - scikit-learn    # Classical ML models
-  - matplotlib      # Plotting
-  - scikit-image    # Image processing
-  - tifffile        # Reading TIFF images (often needed for satellite imagery)
-
-  # Geospatial / satellite data
-  - rasterio        # Geospatial raster I/O; can be finicky on Windows if pinned too tightly
-  - shapely         # Geometry objects and spatial operations
-
-  # Usability / speed
-  - tqdm            # Progress bars in loops
-
-  # Data augmentation
-  - albumentations  # Advanced image augmentation (version pinned to avoid breaking changes)
-
-  # PyTorch stack (🧠 ML backbone)
-  - pytorch         # CPU version will be installed automatically unless CUDA is available
-  - torchvision    # Models and image preprocessing for PyTorch
-
-  # Model training & utilities
-  - pytorch-lightning     # High-level wrapper for PyTorch training loops
-  - segmentation-models-pytorch=0.3.4  # Predefined semantic segmentation models using PyTorch
-  - timm             # PyTorch image models (transformers, convnets, etc.)
-  - tensorboard            # Visualization for training logs
-
-  # Ensures pip is available for pip-only installs below
-  - pip                   
-
-  # Packages not available on conda (install via pip)
-  - pip:
-      # - albucore            # Not on conda, related to albumentations config/metadata
-      # - annotated-types      # Typing support, required by some ML libs
-      # - astunparse==1.6.3           # Parses and un-parses Python ASTs (used by TensorFlow and similar frameworks)
+  - python=3.9
+  - numpy
+  - pandas
+  - scikit-learn
+  - matplotlib
+  - scikit-image
+  - tifffile
+  - rasterio
+  - shapely
+  - tqdm
+  - albumentations
+  - pytorch
+  - torchvision
+  - pytorch-lightning
+  - segmentation-models-pytorch
+  - timm
+  - tensorboard
