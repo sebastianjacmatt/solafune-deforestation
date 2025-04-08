@@ -4,14 +4,8 @@ project_root = os.path.abspath(os.path.join(os.getcwd(), "../../../"))
 sys.path.append(os.path.join(project_root, "src"))
 print(project_root)
 
-import matplotlib.pyplot as plt
-from dataset import TrainValDataset, OBAValDataset
-from global_paths import DATASET_PATH, TRAIN_ANNOTATIONS_PATH
-from train_utils import train_indices
-
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 def to_rgb(img):
     """
@@ -25,14 +19,6 @@ def to_rgb(img):
     return rgb.transpose(1, 2, 0)
 
 def visualize_both_samples(original_dataset, oba_dataset, index=0):
-    """
-    Visualizes both an original sample and an OBA sample in one figure.
-    The figure has 2 rows and 2 columns:
-    - Top Left: Original RGB composite image.
-    - Top Right: Original image with overlaid mask.
-    - Bottom Left: OBA RGB composite image.
-    - Bottom Right: OBA image with overlaid mask and highlighted pasted object.
-    """
     sample_orig = original_dataset[index]
     sample_oba = oba_dataset[index]
     
@@ -42,7 +28,6 @@ def visualize_both_samples(original_dataset, oba_dataset, index=0):
     mask_orig = sample_orig["mask"].transpose(1, 2, 0)
     mask_oba = sample_oba["mask"].transpose(1, 2, 0)
     
-    # Create a 2x2 grid for visualization
     fig, axes = plt.subplots(2, 2, figsize=(12, 12))
     
     # Top left: Original RGB composite
@@ -63,26 +48,37 @@ def visualize_both_samples(original_dataset, oba_dataset, index=0):
     axes[1, 0].set_title("OBA RGB Composite")
     axes[1, 0].axis("off")
     
-    # Bottom right: OBA image with mask overlay and highlighted pasted object
+    # Bottom right: OBA image with mask overlay and highlighted pasted objects
     axes[1, 1].imshow(rgb_oba)
     for i in range(mask_oba.shape[-1]):
         axes[1, 1].imshow(mask_oba[:, :, i], cmap=colormaps[i], alpha=0.5)
-    # Overlay a distinct colored rectangle if a pasted object bounding box exists
-    if "oba_bbox" in sample_oba and sample_oba["oba_bbox"] is not None:
-        top, left, h_obj, w_obj = sample_oba["oba_bbox"]
-        rect = plt.Rectangle((left, top), w_obj, h_obj, edgecolor='magenta', facecolor='none', linewidth=2)
-        axes[1, 1].add_patch(rect)
+    
+    # Draw bounding boxes for the pasted objects if available.
+    bboxes = sample_oba.get("oba_bbox", None)
+    if bboxes is not None:
+        # If it's a list of bounding boxes, iterate over each one.
+        if isinstance(bboxes, list):
+            for bbox in bboxes:
+                if bbox is not None:  # sometimes you might get None if pasting was skipped
+                    top, left, h_obj, w_obj = bbox
+                    rect = plt.Rectangle((left, top), w_obj, h_obj, edgecolor='magenta', facecolor='none', linewidth=2)
+                    axes[1, 1].add_patch(rect)
+        else:
+            # If it's a single bounding box tuple.
+            top, left, h_obj, w_obj = bboxes
+            rect = plt.Rectangle((left, top), w_obj, h_obj, edgecolor='magenta', facecolor='none', linewidth=2)
+            axes[1, 1].add_patch(rect)
+    
     axes[1, 1].set_title("OBA with Mask and Highlight")
     axes[1, 1].axis("off")
     
     plt.tight_layout()
     plt.show()
 
-# Example usage:
 if __name__ == "__main__":
     from dataset import TrainValDataset, OBAValDataset
     from global_paths import DATASET_PATH
-    # Adjust these indices and paths according to your project setup.
+
     sample_indices = list(range(10))  # Example indices
     annotations_path = DATASET_PATH / "train_annotations.json"
     
@@ -97,7 +93,8 @@ if __name__ == "__main__":
         augmentations=None,
         use_oba=True,
         oba_prob=1.0,
-        visualize=True  # Enable visualization mode
+        visualize=True,  # Enable visualization mode
+        num_oba_objects=5,
     )
     
     # Visualize both samples (the same index from original and OBA datasets)
