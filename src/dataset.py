@@ -85,7 +85,7 @@ import json
 from pathlib import Path
 
 class OBAValDataset(Dataset):
-    def __init__(self, data_root, sample_indices, annotations_path, augmentations=None, use_oba=True, oba_prob=0.5):
+    def __init__(self, data_root, sample_indices, annotations_path, augmentations=None, use_oba=True, oba_prob=0.5, visualize=False):
         """
         data_root: Path to the dataset.
         sample_indices: Which train_X.* files to use.
@@ -100,6 +100,7 @@ class OBAValDataset(Dataset):
         self.augmentations = augmentations
         self.use_oba = use_oba
         self.oba_prob = oba_prob
+        self.visualize = visualize
 
         # Load annotations from the JSON file
         with open(annotations_path, 'r') as f:
@@ -147,20 +148,21 @@ class OBAValDataset(Dataset):
                 polygon = annotation['segmentation']
                 obj_img, obj_mask = oba.extract_object(image, polygon, padding=5)
                 if obj_img is not None:
-                    # Use current image as background
                     target_img = image.copy()
                     target_mask = mask.copy()
                     class_channel = self.class_to_channel(annotation['class'])
-                    image, mask = oba.paste_object(target_img, target_mask, obj_img, obj_mask, class_channel)
-        
-        # Optionally apply other augmentations
-        if self.augmentations is not None:
-            sample = self.augmentations(image=image, mask=mask)
-            image, mask = sample["image"], sample["mask"]
-        
-        # For training, you might need to convert to channels-first:
-        image = image.transpose(2, 0, 1)  # (12, H, W)
-        mask = mask.transpose(2, 0, 1)    # (4, H, W)
+                    if self.visualize:
+                        image, mask, bbox = oba.paste_object(target_img, target_mask, obj_img, obj_mask, class_channel, highlight=True)
+                        # Save the bounding box in the sample for visualization purposes.
+                        extra = {"oba_bbox": bbox}
+                    else:
+                        image, mask = oba.paste_object(target_img, target_mask, obj_img, obj_mask, class_channel)
+                        extra = {}
+        # (Apply any further augmentations and processing as before)
+        image = image.transpose(2, 0, 1)
+        mask = mask.transpose(2, 0, 1)
         image = normalize_image(image)
         
-        return {"image": image, "mask": mask, "image_path": str(self.image_paths[idx])}
+        sample = {"image": image, "mask": mask, "image_path": str(self.image_paths[idx])}
+        sample.update(extra)
+        return sample

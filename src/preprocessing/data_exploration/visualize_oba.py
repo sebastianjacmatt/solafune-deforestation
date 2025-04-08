@@ -20,59 +20,85 @@ def to_rgb(img):
        Red = channel 3, Green = channel 2, Blue = channel 1.
     The image is assumed to be in channels-first format.
     """
-    # Select channels: adjust indices if needed (here indices 3,2,1)
     rgb = img[[3, 2, 1], :, :]
-    # Normalize the image to [0, 1] for display
     rgb = (rgb - rgb.min()) / (rgb.max() - rgb.min() + 1e-6)
-    # Convert to channels-last format (H, W, C)
     return rgb.transpose(1, 2, 0)
 
-
-def visualize_sample(dataset, index=0):
+def visualize_both_samples(original_dataset, oba_dataset, index=0):
     """
-    Visualizes an image sample from the dataset.
-    Assumes sample["image"] is in channels-first format (C, H, W) and normalized.
+    Visualizes both an original sample and an OBA sample in one figure.
+    The figure has 2 rows and 2 columns:
+    - Top Left: Original RGB composite image.
+    - Top Right: Original image with overlaid mask.
+    - Bottom Left: OBA RGB composite image.
+    - Bottom Right: OBA image with overlaid mask and highlighted pasted object.
     """
-    sample = dataset[index]
-    # Convert image from (C, H, W) to an RGB composite for display
-    rgb_image = to_rgb(sample["image"])
-    # Convert mask from (C, H, W) to (H, W, C) for overlay visualization
-    mask = sample["mask"].transpose(1, 2, 0)
+    sample_orig = original_dataset[index]
+    sample_oba = oba_dataset[index]
     
-    fig, axes = plt.subplots(1, 2, figsize=(12, 6))
+    rgb_orig = to_rgb(sample_orig["image"])
+    rgb_oba = to_rgb(sample_oba["image"])
     
-    axes[0].imshow(rgb_image)
-    axes[0].set_title("RGB Composite Image")
-    axes[0].axis("off")
+    mask_orig = sample_orig["mask"].transpose(1, 2, 0)
+    mask_oba = sample_oba["mask"].transpose(1, 2, 0)
     
-    axes[1].imshow(rgb_image)
-    # Overlay mask channels using different colormaps
+    # Create a 2x2 grid for visualization
+    fig, axes = plt.subplots(2, 2, figsize=(12, 12))
+    
+    # Top left: Original RGB composite
+    axes[0, 0].imshow(rgb_orig)
+    axes[0, 0].set_title("Original RGB Composite")
+    axes[0, 0].axis("off")
+    
+    # Top right: Original image with mask overlay
+    axes[0, 1].imshow(rgb_orig)
     colormaps = [plt.cm.Reds, plt.cm.Greens, plt.cm.Blues, plt.cm.Oranges]
-    for i in range(mask.shape[-1]):
-        axes[1].imshow(mask[:, :, i], cmap=colormaps[i], alpha=0.5)
-    axes[1].set_title("Image with Mask Overlay")
-    axes[1].axis("off")
+    for i in range(mask_orig.shape[-1]):
+        axes[0, 1].imshow(mask_orig[:, :, i], cmap=colormaps[i], alpha=0.5)
+    axes[0, 1].set_title("Original with Mask Overlay")
+    axes[0, 1].axis("off")
+    
+    # Bottom left: OBA RGB composite
+    axes[1, 0].imshow(rgb_oba)
+    axes[1, 0].set_title("OBA RGB Composite")
+    axes[1, 0].axis("off")
+    
+    # Bottom right: OBA image with mask overlay and highlighted pasted object
+    axes[1, 1].imshow(rgb_oba)
+    for i in range(mask_oba.shape[-1]):
+        axes[1, 1].imshow(mask_oba[:, :, i], cmap=colormaps[i], alpha=0.5)
+    # Overlay a distinct colored rectangle if a pasted object bounding box exists
+    if "oba_bbox" in sample_oba and sample_oba["oba_bbox"] is not None:
+        top, left, h_obj, w_obj = sample_oba["oba_bbox"]
+        rect = plt.Rectangle((left, top), w_obj, h_obj, edgecolor='magenta', facecolor='none', linewidth=2)
+        axes[1, 1].add_patch(rect)
+    axes[1, 1].set_title("OBA with Mask and Highlight")
+    axes[1, 1].axis("off")
     
     plt.tight_layout()
     plt.show()
+
 # Example usage:
-# Assume TrainValDataset and OBAValDataset are imported from your dataset.py.
-# Also assume that data_root, sample_indices, and annotations_path are defined.
-
-
-sample_indices = list(range(10))  # example indices
-annotations_path = DATASET_PATH / "train_annotations.json"
-
-# Create the original dataset (without OBA augmentation)
-original_dataset = TrainValDataset(data_root=DATASET_PATH, sample_indices=sample_indices, augmentations=None)
-
-# Create the OBA dataset (with cut-and-paste augmentation)
-oba_dataset = OBAValDataset(data_root=DATASET_PATH, sample_indices=sample_indices,
-                            annotations_path=annotations_path, augmentations=None,
-                            use_oba=True, oba_prob=1.0)  # use 100% probability for testing
-
-# Visualize a sample from the original dataset
-visualize_sample(original_dataset, index=1)
-
-# Visualize a sample from the OBA dataset
-visualize_sample(oba_dataset, index=1)
+if __name__ == "__main__":
+    from dataset import TrainValDataset, OBAValDataset
+    from global_paths import DATASET_PATH
+    # Adjust these indices and paths according to your project setup.
+    sample_indices = list(range(10))  # Example indices
+    annotations_path = DATASET_PATH / "train_annotations.json"
+    
+    # Create the original dataset (without OBA augmentation)
+    original_dataset = TrainValDataset(data_root=DATASET_PATH, sample_indices=sample_indices, augmentations=None)
+    
+    # Create the OBA dataset (with cut-and-paste augmentation and visualization enabled)
+    oba_dataset = OBAValDataset(
+        data_root=DATASET_PATH,
+        sample_indices=sample_indices,
+        annotations_path=annotations_path,
+        augmentations=None,
+        use_oba=True,
+        oba_prob=1.0,
+        visualize=True  # Enable visualization mode
+    )
+    
+    # Visualize both samples (the same index from original and OBA datasets)
+    visualize_both_samples(original_dataset, oba_dataset, index=1)
