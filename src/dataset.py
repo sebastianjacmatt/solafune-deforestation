@@ -135,45 +135,50 @@ class OBAValDataset(Dataset):
         return len(self.image_paths)
     
     def __getitem__(self, idx):
-        image = load_image(self.image_paths[idx])  # (1024, 1024, 12)
-        mask = load_mask(self.mask_paths[idx])      # (1024, 1024, 4)
+        image = load_image(self.image_paths[idx])  # Original image (1024, 1024, 12)
+        mask = load_mask(self.mask_paths[idx])      # Original mask (1024, 1024, 4)
         
-        # Initialize a dictionary to hold extra info (like pasted-object bboxes) for visualization.
         sample_extra = {}
         
-        # Optionally perform OBA augmentation with some probability
+        # Check if we should apply OBA augmentation
         if self.use_oba and np.random.rand() < self.oba_prob:
             annotations = self.annotations_for_image(self.image_paths[idx])
             if annotations:
-                # Paste up to num_oba_objects; note that paste_object updates the image and mask sequentially.
+                # Use a cumulative target image and mask that get updated each iteration.
+                cum_image = image.copy()
+                cum_mask = mask.copy()
+                
                 for _ in range(self.num_oba_objects):
-                    # Randomly choose an annotation from available ones.
                     annotation = np.random.choice(annotations)
                     polygon = annotation['segmentation']
-                    obj_img, obj_mask = oba.extract_object(image, polygon, padding=5)
+                    obj_img, obj_mask = oba.extract_object(cum_image, polygon, padding=5)
                     if obj_img is not None:
-                        target_img = image.copy()
-                        target_mask = mask.copy()
                         class_channel = self.class_to_channel(annotation['class'])
-                        # When visualizing, you might want to get the pasted object's bbox.
+                        # Update the cumulative image and mask with each pasted object.
                         if self.visualize:
-                            image, mask, bbox = oba.paste_object(target_img, target_mask, obj_img, obj_mask,
-                                                                 class_channel, highlight=True)
-                            # Save the bbox for visualization; if multiple objects are pasted, store them in a list.
+                            cum_image, cum_mask, bbox = oba.paste_object(
+                                cum_image, cum_mask, obj_img, obj_mask, class_channel, highlight=True
+                            )
+                            # Store multiple bounding boxes in a list for visualization.
                             if "oba_bbox" not in sample_extra:
                                 sample_extra["oba_bbox"] = [bbox]
                             else:
                                 sample_extra["oba_bbox"].append(bbox)
                         else:
-                            image, mask = oba.paste_object(target_img, target_mask, obj_img, obj_mask, class_channel)
-                    # End for each object
-        # Optionally apply additional augmentations.
+                            cum_image, cum_mask = oba.paste_object(
+                                cum_image, cum_mask, obj_img, obj_mask, class_channel
+                            )
+                # Replace the original image and mask with the cumulative version.
+                image = cum_image
+                mask = cum_mask
+
+        # Optionally apply additional augmentations
         if self.augmentations is not None:
             sample_dict = {"image": image, "mask": mask}
             sample_dict = self.augmentations(**sample_dict)
             image, mask = sample_dict["image"], sample_dict["mask"]
 
-        # Convert to channels-first and normalize.
+        # Convert to channels-first format and normalize before returning
         image = image.transpose(2, 0, 1)  # (12, H, W)
         mask = mask.transpose(2, 0, 1)    # (4, H, W)
         image = normalize_image(image)
