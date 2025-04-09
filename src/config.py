@@ -1,12 +1,49 @@
-EPOCHS = 200
+EPOCHS = 2
 SEED = 42
 BATCH_SIZE_TRAIN = 32
 BATCH_SIZE_VAL = 8
+
 CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
+
+# Number of sample indicies (train / val), default: 176, else less for testing
+NUM_SAMPLE_INDICIES = 2
+
+# Number of eval indicie, default: 118, else less for testing
+NUM_EVAL_INDICIES = 2
 
 # threshold / area for post-processing
 SCORE_THRESH = 0.5
-MIN_AREA = 10000
+MIN_AREA = 20000
+
+TESTING = True # set to False for training
+
+if TESTING:
+    # Batch sizes
+    BATCH_SIZE_TRAIN = 8
+    BATCH_SIZE_VAL = 1
+    BATCH_SIZE_TEST = 1 
+
+    # Number of workers
+    NUM_WORKERS_TRAIN = 0 # set to 0 for testing
+    NUM_WORKERS_VAL = 0 # set to 0 for testing
+    NUM_WORKERS_TEST = 0 # set to 0 for testing
+
+    PIN_MEMORY = False # for systems without cuda, set to false
+    PERSISTNAT_WORKERS = False # for systems without cuda, set to false
+else:
+    # Batch sizes
+    BATCH_SIZE_TRAIN = 8
+    BATCH_SIZE_VAL = 4
+    BATCH_SIZE_TEST = 4 
+
+    # Number of workers
+    NUM_WORKERS_TRAIN = 4 # set to 0 for testing
+    NUM_WORKERS_VAL = 4 # set to 0 for testing
+    NUM_WORKERS_TEST = 4 # set to 0 for testing
+
+    PIN_MEMORY = True # for systems without cuda, set to false
+    PERSISTNAT_WORKERS = True # for systems without cuda, set to false
+    
 
 # For normalizing 12-band images
 MEAN = [
@@ -37,3 +74,5 @@ STD = [
     631.7808113929271,
     502.66788721341396,
 ]
+
+

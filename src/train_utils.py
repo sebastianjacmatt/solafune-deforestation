@@ -12,10 +12,16 @@ import torch
 
 from torch.utils.data import DataLoader
 
-from dataset import TrainValDataset
-from config import SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL
-from global_paths import DATASET_PATH, TRAIN_OUTPUT_DIR
+from dataset import TrainValDataset, OBAValDataset
+from config import SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES, NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS
+from global_paths import DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH
 from model import Model
+
+
+sample_indices = list(range(NUM_SAMPLE_INDICIES))
+train_indices, val_indices = train_test_split(
+    sample_indices, test_size=0.2, random_state=SEED
+)
 
 def get_augmentations():
     return A.Compose([
@@ -35,11 +41,6 @@ def get_augmentations():
     ])
 
 def prepare_dataloaders():
-    sample_indices = list(range(176))
-    train_indices, val_indices = train_test_split(
-        sample_indices, test_size=0.2, random_state=SEED
-    )
-
     train_dataset = TrainValDataset(
         data_root=DATASET_PATH,
         sample_indices=train_indices,
@@ -54,20 +55,28 @@ def prepare_dataloaders():
     train_loader = DataLoader(
         train_dataset,
         batch_size=BATCH_SIZE_TRAIN,
+<<<<<<< HEAD
         num_workers=1,
+=======
+        num_workers=NUM_WORKERS_TRAIN,
+>>>>>>> main
         shuffle=True,
-        pin_memory=True,
-        persistent_workers=True,
+        pin_memory=PIN_MEMORY,
+        persistent_workers=PERSISTNAT_WORKERS,
     )
     val_loader = DataLoader(
         val_dataset,
         batch_size=BATCH_SIZE_VAL,
+<<<<<<< HEAD
         num_workers=1,
+=======
+        num_workers=NUM_WORKERS_VAL,
+>>>>>>> main
         shuffle=False,
-        pin_memory=True,
-        persistent_workers=True,
+        pin_memory=PIN_MEMORY,
+        persistent_workers=PERSISTNAT_WORKERS,
     )
-    return train_loader, val_loader, train_indices, val_indices
+    return train_loader, val_loader
 
 def get_trainer():
     seed_everything(SEED)
@@ -101,8 +110,11 @@ def get_trainer():
     return trainer
 
 
-def train_model():
-    train_loader, val_loader, train_indices, val_indices = prepare_dataloaders()
+def train_model(use_oba=False):
+    if use_oba:
+        train_loader, val_loader = prepare_dataloaders_oba()
+    else:
+        train_loader, val_loader = prepare_dataloaders()
     model = Model()
     trainer = get_trainer()
 
@@ -112,4 +124,41 @@ def train_model():
         val_dataloaders=val_loader
     )
 
-    return model, train_loader, val_loader, train_indices, val_indices
+    return model, train_loader, val_loader
+
+
+def prepare_dataloaders_oba():
+    # Use the OBA dataset for training and the original for validation
+    train_dataset = OBAValDataset(
+        data_root=DATASET_PATH,
+        sample_indices=train_indices,
+        annotations_path=TRAIN_ANNOTATIONS_PATH,
+        augmentations=get_augmentations(),
+        use_oba=True,
+        oba_prob=1.0 # Set to 100% for testing, then reduce later
+    )
+    val_dataset = TrainValDataset(
+        data_root=DATASET_PATH,
+        sample_indices=val_indices,
+        augmentations=None
+    )
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=BATCH_SIZE_TRAIN,
+        num_workers=NUM_WORKERS_TRAIN,
+        shuffle=True,
+        pin_memory=PIN_MEMORY,
+        persistent_workers=PERSISTNAT_WORKERS,
+    )
+    val_loader = DataLoader(
+        val_dataset,
+        batch_size=BATCH_SIZE_VAL,
+        num_workers=NUM_WORKERS_VAL,
+        shuffle=False,
+        pin_memory=PIN_MEMORY,
+        persistent_workers=PERSISTNAT_WORKERS,
+    )
+    return train_loader, val_loader
+
+

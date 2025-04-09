@@ -1,19 +1,25 @@
-name: solafune-deforestation
+name: solafune-deforestation-cpu
+
 channels:
-  - defaults
+  - pytorch         
+  - conda-forge     
+  - defaults        
+
 dependencies:
-  - python=3.11
+  - python=3.9
   - numpy
-  - scipy
-  - scikit-learn
   - pandas
-  - jupyter
-  - ipykernel
-  - pickleshare
+  - scikit-learn
   - matplotlib
-  - pathlib
-  - libtiff # needed to open multi channel images
-  - tifffile # needed to open multi channel images
-  - imagecodecs # needed to open multi channel images
+  - scikit-image
+  - tifffile
   - rasterio
-  - geopandas
+  - shapely
+  - tqdm
+  - albumentations
+  - pytorch
+  - torchvision
+  - pytorch-lightning
+  - segmentation-models-pytorch
+  - timm
+  - tensorboard
