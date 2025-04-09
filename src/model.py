@@ -28,8 +28,10 @@ class Model(pl.LightningModule):
         )
 
         # freeze pre-trained encoder weights
+        """
         for param in self.model.encoder.parameters():
             param.requires_grad = False
+        """
 
         # define loss functions
         self.dice_loss_fn = smp.losses.DiceLoss(
