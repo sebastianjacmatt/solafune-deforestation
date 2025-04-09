@@ -1,5 +1,9 @@
 import sys
 import os
+
+from tqdm import tqdm
+
+from invariance_constrained import primal_dual_augmentation
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(os.path.join(project_root, "src"))
 
@@ -13,7 +17,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import TrainValDataset, OBAValDataset
-from config import SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES, NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS
+from config import EPSILON, ETA_D, ETA_P, GAMMA, INVARIANCE_CONSTRAINED_LEARNING, M_SAMPLES, N_MH_STEPS, SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES, NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS
 from global_paths import DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH
 from model import Model
 
@@ -55,11 +59,7 @@ def prepare_dataloaders():
     train_loader = DataLoader(
         train_dataset,
         batch_size=BATCH_SIZE_TRAIN,
-<<<<<<< HEAD
-        num_workers=1,
-=======
         num_workers=NUM_WORKERS_TRAIN,
->>>>>>> main
         shuffle=True,
         pin_memory=PIN_MEMORY,
         persistent_workers=PERSISTNAT_WORKERS,
@@ -67,11 +67,7 @@ def prepare_dataloaders():
     val_loader = DataLoader(
         val_dataset,
         batch_size=BATCH_SIZE_VAL,
-<<<<<<< HEAD
-        num_workers=1,
-=======
         num_workers=NUM_WORKERS_VAL,
->>>>>>> main
         shuffle=False,
         pin_memory=PIN_MEMORY,
         persistent_workers=PERSISTNAT_WORKERS,
@@ -118,11 +114,18 @@ def train_model(use_oba=False):
     model = Model()
     trainer = get_trainer()
 
-    trainer.fit(
-        model,
-        train_dataloaders=train_loader,
-        val_dataloaders=val_loader
-    )
+    if INVARIANCE_CONSTRAINED_LEARNING:
+        optimizer_schedulers = model.configure_optimizers()
+        optimizer = optimizer_schedulers["optimizer"]
+        scheduler = optimizer_schedulers["lr_scheduler"]["scheduler"]     
+        model = custom_fit(model,train_loader,val_loader,optimizer, scheduler, EPOCHS, "cpu")
+
+    else:
+        trainer.fit(
+            model,
+            train_dataloaders=train_loader,
+            val_dataloaders=val_loader
+        )
 
     return model, train_loader, val_loader
 
@@ -161,4 +164,54 @@ def prepare_dataloaders_oba():
     )
     return train_loader, val_loader
 
+
+
+def custom_fit(model, train_loader, val_loader, optimizer, scheduler, num_epochs, device):
+
+    model.to(device)
+    # Dual variable for primal-dual updates
+    gamma = GAMMA
+
+    for epoch in range(num_epochs):
+        print(f"\nEpoch {epoch + 1}/{num_epochs}")
+        model.train()
+        train_loss = 0.0
+
+        for batch in tqdm(train_loader, desc="Training"):
+
+            # Move data to device
+            images = batch["image"].to(device)
+            masks = batch["mask"].to(device)
+
+            # Wrap batch as a list of (image, mask) pairs
+            data_batch = list(zip(images, masks))
+
+            # Perform one update step using primal-dual
+            batch_loss, gamma = primal_dual_augmentation(
+                model, data_batch, get_augmentations(), optimizer, gamma, EPSILON,
+                ETA_P, ETA_D, n_mh_steps=N_MH_STEPS, m_samples=M_SAMPLES, device=device
+            )
+            train_loss += batch_loss 
+
+        train_loss /= len(train_loader)
+        print(f"Training Loss: {train_loss:.4f}")
+
+        # Validation loop
+        model.eval()
+        val_loss = 0.0
+        with torch.no_grad():
+            for batch in tqdm(val_loader, desc="Validation"):
+                images = batch["image"].to(device)
+                masks = batch["mask"].to(device)
+                logits = model(images)
+                loss = model.dice_loss_fn(logits, masks) + model.bce_loss_fn(logits, masks)
+                val_loss += loss.item()
+
+        val_loss /= len(val_loader)
+        print(f"Validation Loss: {val_loss:.4f}")
+
+        if scheduler:
+            scheduler.step(epoch)
+
+    return model
 

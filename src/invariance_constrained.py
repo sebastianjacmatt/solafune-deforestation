@@ -1,70 +1,73 @@
+import random
 import torch
 import torch.nn.functional as F
 import numpy as np
 
-def independent_mh_sampler(f_theta, G, x, y, n_steps):
-    """
-    Implements the Independent Metropolis-Hastings (MH) Sampler.
-    
-    Args:
-        f_theta: Model function.
-        G: Set of possible transformations.
-        x: Input data.
-        y: Target labels.
-        n_steps: Number of MH steps.
-    
-    Returns:
-        List of sampled transformations.
-    """
-    g_t = np.random.choice(G)  # Initial state
-    loss = self.dice_loss_fn(f_theta, y) + \ 
-            self.bce_loss_fn(f_theta, y)
+def independent_mh_sampler(model, G, x, y, n_steps):
 
-    samples = [(g_t, loss_t)]
+    g_t = np.random.choice(G)  # Initial state
+    gx_t = apply_albumentations(g_t, x)
+    loss_t = model.dice_loss_fn(model(gx_t.unsqueeze(0)), y.unsqueeze(0)) + model.bce_loss_fn(model(gx_t.unsqueeze(0)), y.unsqueeze(0))
+    samples = [(g_t, loss_t.item())]
     
     for _ in range(n_steps):
-        g_prop = np.random.choice(G)  # Proposal sample
-        loss_prop = F.mse_loss(f_theta(g_prop(x)), y).item()
-        
-        p = min(1, loss_prop / loss_t)
-        if np.random.rand() < p:
+        g_prop = random.choice(G)
+        gx_prop = apply_albumentations(g_prop,x)
+        loss_prop = model.dice_loss_fn(model(gx_prop.unsqueeze(0)), y.unsqueeze(0)) + model.bce_loss_fn(model(gx_prop.unsqueeze(0)), y.unsqueeze(0))
+
+        acceptance_ratio = min(1.0, loss_prop.item() / loss_t.item()) if loss_t.item() > 0 else 1.0   
+        if np.random.rand() < acceptance_ratio:
             g_t, loss_t = g_prop, loss_prop
         
-        samples.append((g_t, loss_t))
+        samples.append((g_t, loss_t.item()))
     
     return samples
 
-def primal_dual_augmentation(model, data_loader, gamma=0.1, epsilon=0.01, eta_p=0.01, eta_d=0.01):
-    """
-    Implements the Primal-Dual Augmentation algorithm.
-    
-    Args:
-        model: Neural network model.
-        data_loader: DataLoader for training.
-        gamma: Initial dual variable.
-        epsilon: Slack variable threshold.
-        eta_p: Learning rate for primal update.
-        eta_d: Learning rate for dual update.
-    """
-    optimizer = torch.optim.Adam(model.parameters(), lr=eta_p)
-    
-    for batch in data_loader:
-        x_batch, y_batch = batch
-        batch_size = x_batch.shape[0]
-        
-        transformed_losses = []
-        for x, y in zip(x_batch, y_batch):
-            g_samples = [torch.randn_like(x) for _ in range(10)]  # Sample transformations
-            losses = [F.mse_loss(model(g_x), y) for g_x in g_samples]
-            transformed_losses.append(sum(losses) / len(losses))
-        
-        lc = sum(transformed_losses) / batch_size  # Augmented loss
-        slack = lc - epsilon
-        l = sum(F.mse_loss(model(x), y) for x, y in zip(x_batch, y_batch)) / batch_size
-        L = l + gamma * slack
-        
-        optimizer.zero_grad()
-        L.backward()
-        optimizer.step()
-        
-        gamma = max(0, gamma + eta_d * slack)  # Dual update
+def primal_dual_augmentation(model, data_batch, G, optimizer, gamma, epsilon=0.01,
+                             eta_p=0.001, eta_d=0.001, n_mh_steps=10, m_samples=5, device='cuda'):
+    batch_size = len(data_batch)
+    transformed_losses = []
+
+    for x, y in data_batch:
+        x, y = x.to(device), y.to(device)
+        mh_samples = independent_mh_sampler(model, G, x, y, n_steps= n_mh_steps)
+        selected = random.sample(mh_samples, k=min(m_samples, len(mh_samples)))
+
+        losses = []
+        for g, _ in selected:
+            gx = apply_albumentations(g, x)
+            pred = model(gx.unsqueeze(0))
+            losses.append(
+                model.dice_loss_fn(pred, y.unsqueeze(0)) +
+                model.bce_loss_fn(pred, y.unsqueeze(0))
+            )
+        transformed_losses.append(sum(losses) / len(losses))
+
+    # Augmented (robust) loss
+    lc = sum(transformed_losses) / batch_size
+    slack = lc - epsilon
+
+   # Clean loss
+    l_clean = sum(
+        model.dice_loss_fn(model(x.unsqueeze(0).to(device)), y.unsqueeze(0).to(device)) +
+        model.bce_loss_fn(model(x.unsqueeze(0).to(device)), y.unsqueeze(0).to(device))
+        for x, y in data_batch
+    ) / batch_size
+
+    # Lagrangian
+    L_total = l_clean + gamma * slack
+
+    # Backprop and update
+    optimizer.zero_grad()
+    L_total.backward()
+    optimizer.step()
+
+    # Dual update
+    gamma = max(0, gamma + eta_d * slack.item())
+
+    return L_total.item(), gamma
+
+def apply_albumentations(g, x):
+    x_np = x.permute(1, 2, 0).cpu().numpy()
+    x_aug = g(image=x_np)["image"]
+    return torch.from_numpy(x_aug).permute(2, 0, 1)

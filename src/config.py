@@ -5,6 +5,15 @@ BATCH_SIZE_VAL = 8
 
 CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
 
+#VARIABLES FOR INVARIANCE_CONSTRAINED LEARNING
+INVARIANCE_CONSTRAINED_LEARNING = True
+EPSILON = 0.5
+ETA_D = 0.01
+ETA_P = 0.01
+GAMMA=0.1
+N_MH_STEPS=10
+M_SAMPLES=5
+
 # Number of sample indicies (train / val), default: 176, else less for testing
 NUM_SAMPLE_INDICIES = 2
 
