@@ -14,8 +14,9 @@ TRAIN_ANNOTATIONS_PATH = DATASET_PATH / "train_annotations.json"
 
 # Ensure directories exist where needed
 SRC_PATH = BASE_DIR / "src"
-OUTPUTS_PATH = SRC_PATH / "outputs"
-MODELS_PATH = SRC_PATH / "models"
+
+OUTPUTS_PATH = BASE_DIR / "outputs"
+MODELS_PATH = BASE_DIR / "models"
 
 OUTPUTS_PATH.mkdir(parents=True, exist_ok=True)
 MODELS_PATH.mkdir(parents=True, exist_ok=True)

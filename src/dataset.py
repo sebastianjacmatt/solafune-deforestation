@@ -7,9 +7,9 @@ import torch
 from torch.utils.data import Dataset
 import numpy as np
 
-import oba
+import src.utils.oba as oba
 
-from data_utils import load_image, load_mask, normalize_image
+from src.utils.data_utils import load_image, load_mask, normalize_image
 
 from config import NUM_EVAL_INDICIES
 

@@ -77,7 +77,7 @@ def visualize_both_samples(original_dataset, oba_dataset, index=0):
 
 if __name__ == "__main__":
     from dataset import TrainValDataset, OBAValDataset
-    from global_paths import DATASET_PATH
+    from src.utils.global_paths import DATASET_PATH
 
     sample_indices = list(range(10))  # Example indices
     annotations_path = DATASET_PATH / "train_annotations.json"

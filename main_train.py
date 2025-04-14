@@ -1,7 +1,11 @@
 import sys
 import os
-project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+project_root = os.path.abspath(os.path.join(os.getcwd(), ""))
 sys.path.append(os.path.join(project_root, "src"))
+
+src_root = os.path.abspath(os.path.join(os.getcwd(), "src/"))
+sys.path.append(os.path.join(src_root, "utils"))
+print(src_root)
 
 import torch
 torch.set_float32_matmul_precision("high")

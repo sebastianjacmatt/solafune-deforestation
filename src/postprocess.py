@@ -6,7 +6,6 @@ sys.path.append(os.path.join(project_root, "src"))
 import numpy as np
 import json
 import os
-from pathlib import Path
 from tqdm import tqdm
 from shapely.geometry import shape
 from skimage import measure
