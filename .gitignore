@@ -1,10 +1,11 @@
 # Ignore large data files
-data/
-train_images/
-evaluation_images/
+data/*
 *.zip
 outputs/predictions/val_preds/*
+outputs/predictions/test_preds/*
+outputs/predictions/training_result/*
 outputs/visualizations/*
+outputs/submissions/*
 
 
 # Ignore intermediate files
