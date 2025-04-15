@@ -6,14 +6,14 @@ import numpy as np
 
 import sys
 import os
+project_root = os.path.abspath(os.path.join(os.getcwd(), "../../.."))
+sys.path.append(os.path.join(project_root, "src"))
 
-# Get the absolute path of the project's root directory
-BASE_DIR = os.path.abspath(os.path.dirname(__file__) + "/../..")
-sys.path.insert(0, BASE_DIR)  # Add project root to Python path
 
-from src.paths import DATASET_PATH, TRAIN_IMAGES_PATH, EVAL_IMAGES_PATH, TRAIN_ANNOTATIONS_PATH
 
-from src.utilities import convert_to_geojson
+from paths import DATASET_PATH, TRAIN_IMAGES_PATH, EVAL_IMAGES_PATH, TRAIN_ANNOTATIONS_PATH
+
+from utilities import convert_to_geojson
 
 
 # Load annotations

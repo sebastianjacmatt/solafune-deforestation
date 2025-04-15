@@ -2,7 +2,9 @@ import sys
 import os
 project_root = os.path.abspath(os.path.join(os.getcwd(), "../../../"))
 sys.path.append(os.path.join(project_root, "src"))
-print(project_root)
+
+src_root = os.path.abspath(os.path.join(project_root, "src/"))
+sys.path.append(os.path.join(src_root, "utils"))
 
 
 import matplotlib.pyplot as plt
@@ -77,7 +79,7 @@ def visualize_both_samples(original_dataset, oba_dataset, index=0):
 
 if __name__ == "__main__":
     from dataset import TrainValDataset, OBAValDataset
-    from src.utils.global_paths import DATASET_PATH
+    from global_paths import DATASET_PATH
 
     sample_indices = list(range(10))  # Example indices
     annotations_path = DATASET_PATH / "train_annotations.json"
