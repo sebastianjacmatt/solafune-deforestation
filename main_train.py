@@ -10,8 +10,7 @@ print(src_root)
 import torch
 torch.set_float32_matmul_precision("high")
 from train_utils import train_model
-from global_paths import TRAIN_OUTPUT_DIR, VAL_PRED_DIR, TEST_PRED_DIR, SUBMISSION_SAVE_PATH, DATASET_PATH
-from model import Model
+from global_paths import VAL_PRED_DIR, TEST_PRED_DIR, SUBMISSION_SAVE_PATH, DATASET_PATH
 from config import SCORE_THRESH, MIN_AREA, NUM_WORKERS_TEST, BATCH_SIZE_TEST
 from dataset import TestDataset
 from torch.utils.data import DataLoader

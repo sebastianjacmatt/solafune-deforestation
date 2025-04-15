@@ -11,7 +11,7 @@ from shapely.geometry import shape
 from skimage import measure
 from rasterio import features
 
-from config import CLASS_NAMES, SCORE_THRESH, MIN_AREA, NUM_EVAL_INDICIES
+from config import CLASS_NAMES
 
 class PostProcess:
     def __init__(self, pred_dir, score_thresh, min_area, save_path):
