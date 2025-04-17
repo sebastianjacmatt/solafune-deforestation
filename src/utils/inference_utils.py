@@ -9,10 +9,6 @@ import torch
 from tqdm import tqdm
 from pathlib import Path
 
-from config import CLASS_NAMES
-from dataset import TestDataset
-from torch.utils.data import DataLoader
-
 def run_inference(model, loader, pred_output_dir):
     pred_output_dir = Path(pred_output_dir)
     pred_output_dir.mkdir(exist_ok=True, parents=True)
