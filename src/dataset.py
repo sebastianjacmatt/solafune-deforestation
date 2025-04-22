@@ -90,6 +90,8 @@ import json
 
 from pathlib import Path
 
+import random
+
 
 class OBAValDataset(Dataset):
     def __init__(self, data_root, sample_indices, annotations_path, augmentations=None,
@@ -112,11 +114,18 @@ class OBAValDataset(Dataset):
         self.oba_prob = oba_prob
         self.visualize = visualize
         self.num_oba_objects = num_oba_objects
-        
+
         # Load annotations from the JSON file
         with open(annotations_path, 'r') as f:
             annotations_data = json.load(f)
         self.annotations = annotations_data.get('images', [])
+
+        # Create a pool of images to use for augmentation
+        self.pool = []
+        for img_item in self.annotations:
+            img_path = data_root/"train_images"/img_item["file_name"]
+            for ann in img_item.get("annotations", []):
+                self.pool.append((img_path, ann))
         
         # Create a mapping from image file name to annotations list
         self.image_to_annotations = {}
@@ -137,65 +146,72 @@ class OBAValDataset(Dataset):
     
     def __getitem__(self, idx):
         # 1) Load base image & mask
-        image = load_image(self.image_paths[idx])  # (1024, 1024, 12)
-        mask  = load_mask(self.mask_paths[idx])    # (1024, 1024, 4)
+        image = load_image(self.image_paths[idx])  # (1024,1024,12)
+        mask  = load_mask(self.mask_paths[idx])    # (1024,1024, 4)
 
         sample_extra = {}
+        cum_image = image.copy()
+        cum_mask  = mask.copy()
 
-        # 2) Maybe apply OBA cut‑paste augmentation
+        # 2) Maybe apply OBA across the pool
         if self.use_oba and np.random.rand() < self.oba_prob:
-            annotations = self.annotations_for_image(self.image_paths[idx])
-            if annotations:
-                cum_image = image.copy()
-                cum_mask  = mask.copy()
+            MAX_EXTRACT_TRIES = 5
 
-                MAX_EXTRACT_TRIES = 5
-
-                for _ in range(self.num_oba_objects):
-                    # try up to MAX_EXTRACT_TRIES different polygons until one yields an object
-                    for extract_try in range(MAX_EXTRACT_TRIES):
-                        annotation = np.random.choice(annotations)
-                        raw_img, raw_mask = oba.extract_object(cum_image, annotation['segmentation'], padding=5)
-                        if raw_img is not None:
-                            break
-                    else:
-                        # after MAX_EXTRACT_TRIES with no success, skip this object slot
+            for _ in range(self.num_oba_objects):
+                # Attempt up to MAX_EXTRACT_TRIES to get a valid raw object
+                for attempt in range(MAX_EXTRACT_TRIES):
+                    # pick a random (source_image, annotation) pair
+                    src_path, ann = random.choice(self.pool)
+                    # (optionally skip same‐image if you want)
+                    if src_path == self.image_paths[idx]:
                         continue
 
-                    # 2b) augment object (rotate, flip, blend)
-                    obj_img, obj_mask = augment_object(raw_img, raw_mask)
+                    # load that source image
+                    src_img = load_image(src_path)
+                    raw_img, raw_mask = oba.extract_object(
+                        src_img,
+                        ann["segmentation"],
+                        padding=5
+                    )
+                    if raw_img is not None:
+                        break
+                else:
+                    # no valid crop found for this slot
+                    continue
 
-                    # 2c) paste back into cum_image / cum_mask
-                    class_ch = self.class_to_channel(annotation['class'])
-                    if self.visualize:
-                        cum_image, cum_mask, bbox = oba.paste_object(
-                            cum_image, cum_mask,
-                            obj_img, obj_mask,
-                            class_ch,
-                            highlight=True
-                        )
-                        sample_extra.setdefault("oba_bbox", []).append(bbox)
-                    else:
-                        cum_image, cum_mask = oba.paste_object(
-                            cum_image, cum_mask,
-                            obj_img, obj_mask,
-                            class_ch
-                        )
+                # 2b) object‐level augs
+                obj_img, obj_mask = augment_object(raw_img, raw_mask)
 
-                # commit the augmented image+mask
-                image, mask = cum_image, cum_mask
+                # 2c) paste into cum_image / cum_mask
+                ch = self.class_to_channel(ann["class"])
+                if self.visualize:
+                    cum_image, cum_mask, bbox = oba.paste_object(
+                        cum_image, cum_mask,
+                        obj_img, obj_mask,
+                        ch, highlight=True
+                    )
+                    sample_extra.setdefault("oba_bbox", []).append(bbox)
+                else:
+                    cum_image, cum_mask = oba.paste_object(
+                        cum_image, cum_mask,
+                        obj_img, obj_mask,
+                        ch
+                    )
 
-        # 3) any other albumentations
+            # commit augmented version
+            image, mask = cum_image, cum_mask
+
+        # 3) any further albumentations
         if self.augmentations is not None:
             tmp = self.augmentations(image=image, mask=mask)
             image, mask = tmp["image"], tmp["mask"]
 
-        # 4) to channels-first & normalize
-        image = image.transpose(2, 0, 1)  # → (12, H, W)
-        mask  = mask.transpose(2, 0, 1)   # → ( 4, H, W)
+        # 4) format for model: (C, H, W) + normalize
+        image = image.transpose(2, 0, 1)
+        mask  = mask.transpose(2, 0, 1)
         image = normalize_image(image)
 
-        # 5) build final sample
+        # 5) build return dict
         sample = {
             "image": image,
             "mask":  mask,

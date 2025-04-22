@@ -46,8 +46,6 @@ def paste_object(target_img, target_mask, obj_img, obj_mask, class_channel, max_
         Otherwise:
             new_img, new_mask.
     """
-    # NOTE: we assume obj_img/obj_mask are already rotated, flipped, edge‑blended.
-    # just read off their shape:
     h_obj, w_obj = obj_img.shape[:2]
 
     H, W, _ = target_img.shape

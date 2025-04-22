@@ -6,6 +6,9 @@ sys.path.append(os.path.join(project_root, "src"))
 src_root = os.path.abspath(os.path.join(os.getcwd(), "src/"))
 sys.path.append(os.path.join(src_root, "utils"))
 
+utils_root = os.path.abspath(os.path.join(src_root, "utils/"))
+sys.path.append(os.path.join(utils_root, "object_based_augmentation"))
+
 import torch
 torch.set_float32_matmul_precision("high")
 
@@ -19,7 +22,7 @@ from postprocess import PostProcess
 
 def main():
     # 1) Train
-    model, train_loader, val_loader = train_model(use_oba=False)
+    model, train_loader, val_loader = train_model(use_oba=True)
 
 
     # 2) Inference on val set

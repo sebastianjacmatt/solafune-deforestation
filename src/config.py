@@ -35,9 +35,9 @@ else:
     BATCH_SIZE_TEST = 4 
 
     # Number of workers
-    NUM_WORKERS_TRAIN = 4 # set to 0 for testing
-    NUM_WORKERS_VAL = 4 # set to 0 for testing
-    NUM_WORKERS_TEST = 4 # set to 0 for testing
+    NUM_WORKERS_TRAIN = 4
+    NUM_WORKERS_VAL = 4
+    NUM_WORKERS_TEST = 4
 
     PIN_MEMORY = True # for systems without cuda, set to false
     PERSISTNAT_WORKERS = True # for systems without cuda, set to false
