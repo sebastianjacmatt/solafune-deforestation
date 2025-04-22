@@ -118,7 +118,7 @@ def train_model(use_oba=False):
         optimizer_schedulers = model.configure_optimizers()
         optimizer = optimizer_schedulers["optimizer"]
         scheduler = optimizer_schedulers["lr_scheduler"]["scheduler"]     
-        model = custom_fit(model,train_loader,val_loader,optimizer, scheduler, EPOCHS, "cpu")
+        model = invariance_constrained_fit(model,train_loader,val_loader,optimizer, scheduler, EPOCHS, "cpu")
 
     else:
         trainer.fit(
@@ -166,8 +166,23 @@ def prepare_dataloaders_oba():
 
 
 
-def custom_fit(model, train_loader, val_loader, optimizer, scheduler, num_epochs, device):
+def invariance_constrained_fit(model, train_loader, val_loader, optimizer, scheduler, num_epochs, device):
+    """
+    Custom fit-function for training a model using invariance-constrained learning with a primal-dual optimization approach.
 
+    Args:
+    model (torch.nn.Module): The segmentation model to be trained.
+    train_loader (torch.utils.data.DataLoader): DataLoader for the training dataset.
+    val_loader (torch.utils.data.DataLoader): DataLoader for the validation dataset.
+    optimizer (torch.optim.Optimizer): Optimizer for updating model parameters.
+    scheduler (torch.optim.lr_scheduler._LRScheduler): Learning rate scheduler for adjusting the learning rate.
+    num_epochs (int): Number of epochs to train the model.
+    device (str): Device to use for training (e.g., "cuda" or "cpu").
+    
+    Returns:
+        torch.nn.Module: The trained model.
+    """
+      
     model.to(device)
     # Dual variable for primal-dual updates
     gamma = GAMMA
