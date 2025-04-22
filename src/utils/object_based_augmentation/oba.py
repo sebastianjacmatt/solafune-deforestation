@@ -36,7 +36,7 @@ def paste_object(target_img, target_mask, obj_img, obj_mask, class_channel, max_
         target_mask: (H, W, 4) numpy array (channels-last) with segmentation information.
         obj_img: The object image to paste (e.g. extracted from a polygon).
         obj_mask: The binary mask corresponding to obj_img.
-        class_channel: The index for the object’s segmentation channel.
+        class_channel: The index for the object's segmentation channel.
         max_attempts: Maximum number of attempts to find a conflict-free location.
         highlight: If True, returns the bounding box of the pasted object.
 
@@ -46,23 +46,9 @@ def paste_object(target_img, target_mask, obj_img, obj_mask, class_channel, max_
         Otherwise:
             new_img, new_mask.
     """
-    # ----- Apply random rotation (without scaling) to the object -----
-    angle = np.random.uniform(0, 360)
-    h_obj, w_obj, _ = obj_img.shape
-    center = (w_obj // 2, h_obj // 2)
-    M = cv2.getRotationMatrix2D(center, angle, 1.0)
-    cos = np.abs(M[0, 0])
-    sin = np.abs(M[0, 1])
-    nW = int((h_obj * sin) + (w_obj * cos))
-    nH = int((h_obj * cos) + (w_obj * sin))
-    M[0, 2] += (nW / 2) - center[0]
-    M[1, 2] += (nH / 2) - center[1]
-    rotated_obj_img = cv2.warpAffine(obj_img, M, (nW, nH), flags=cv2.INTER_LINEAR)
-    rotated_obj_mask = cv2.warpAffine(obj_mask, M, (nW, nH), flags=cv2.INTER_NEAREST)
-    obj_img = rotated_obj_img
-    obj_mask = rotated_obj_mask
-    h_obj, w_obj, _ = obj_img.shape
-    # ----- End rotation step -----
+    # NOTE: we assume obj_img/obj_mask are already rotated, flipped, edge‑blended.
+    # just read off their shape:
+    h_obj, w_obj = obj_img.shape[:2]
 
     H, W, _ = target_img.shape
     if H - h_obj <= 0 or W - w_obj <= 0:

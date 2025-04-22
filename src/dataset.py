@@ -6,13 +6,18 @@ sys.path.append(os.path.join(project_root, "src"))
 src_root = os.path.abspath(os.path.join(project_root, "src/"))
 sys.path.append(os.path.join(src_root, "utils"))
 
+utils_root = os.path.abspath(os.path.join(src_root, "utils/"))
+sys.path.append(os.path.join(utils_root, "object_based_augmentation"))
+
 import torch
 from torch.utils.data import Dataset
 import numpy as np
 
 import oba as oba
+from object_augmentation import augment_object
+
 from data_utils import load_image, load_mask, normalize_image
-from config import NUM_EVAL_INDICIES
+from config import NUM_EVAL_INDICIES, CLASS_NAMES
 
 class TrainValDataset(Dataset):
     def __init__(self, data_root, sample_indices, augmentations=None):
@@ -85,7 +90,6 @@ import json
 
 from pathlib import Path
 
-# In dataset.py, inside OBAValDataset:
 
 class OBAValDataset(Dataset):
     def __init__(self, data_root, sample_indices, annotations_path, augmentations=None,
@@ -124,66 +128,78 @@ class OBAValDataset(Dataset):
         return self.image_to_annotations.get(filename, [])
     
     def class_to_channel(self, cls):
-        mapping = {
-            'plantation': 0,
-            'grassland_shrubland': 1,
-            'mining': 2,
-            'logging': 3
-        }
+        mapping = { name: idx for idx, name in enumerate(CLASS_NAMES) }
+        # e.g. { "grassland_shrubland": 0, "logging": 1, "mining": 2, "plantation": 3 }
         return mapping.get(cls, 0)
     
     def __len__(self):
         return len(self.image_paths)
     
     def __getitem__(self, idx):
-        image = load_image(self.image_paths[idx])  # Original image (1024, 1024, 12)
-        mask = load_mask(self.mask_paths[idx])      # Original mask (1024, 1024, 4)
-        
+        # 1) Load base image & mask
+        image = load_image(self.image_paths[idx])  # (1024, 1024, 12)
+        mask  = load_mask(self.mask_paths[idx])    # (1024, 1024, 4)
+
         sample_extra = {}
-        
-        # Check if we should apply OBA augmentation
+
+        # 2) Maybe apply OBA cut‑paste augmentation
         if self.use_oba and np.random.rand() < self.oba_prob:
             annotations = self.annotations_for_image(self.image_paths[idx])
             if annotations:
-                # Use a cumulative target image and mask that get updated each iteration.
                 cum_image = image.copy()
-                cum_mask = mask.copy()
-                
+                cum_mask  = mask.copy()
+
+                MAX_EXTRACT_TRIES = 5
+
                 for _ in range(self.num_oba_objects):
-                    annotation = np.random.choice(annotations)
-                    polygon = annotation['segmentation']
-                    obj_img, obj_mask = oba.extract_object(cum_image, polygon, padding=5)
-                    if obj_img is not None:
-                        class_channel = self.class_to_channel(annotation['class'])
-                        # Update the cumulative image and mask with each pasted object.
-                        if self.visualize:
-                            cum_image, cum_mask, bbox = oba.paste_object(
-                                cum_image, cum_mask, obj_img, obj_mask, class_channel, highlight=True
-                            )
-                            # Store multiple bounding boxes in a list for visualization.
-                            if "oba_bbox" not in sample_extra:
-                                sample_extra["oba_bbox"] = [bbox]
-                            else:
-                                sample_extra["oba_bbox"].append(bbox)
-                        else:
-                            cum_image, cum_mask = oba.paste_object(
-                                cum_image, cum_mask, obj_img, obj_mask, class_channel
-                            )
-                # Replace the original image and mask with the cumulative version.
-                image = cum_image
-                mask = cum_mask
+                    # try up to MAX_EXTRACT_TRIES different polygons until one yields an object
+                    for extract_try in range(MAX_EXTRACT_TRIES):
+                        annotation = np.random.choice(annotations)
+                        raw_img, raw_mask = oba.extract_object(cum_image, annotation['segmentation'], padding=5)
+                        if raw_img is not None:
+                            break
+                    else:
+                        # after MAX_EXTRACT_TRIES with no success, skip this object slot
+                        continue
 
-        # Optionally apply additional augmentations
+                    # 2b) augment object (rotate, flip, blend)
+                    obj_img, obj_mask = augment_object(raw_img, raw_mask)
+
+                    # 2c) paste back into cum_image / cum_mask
+                    class_ch = self.class_to_channel(annotation['class'])
+                    if self.visualize:
+                        cum_image, cum_mask, bbox = oba.paste_object(
+                            cum_image, cum_mask,
+                            obj_img, obj_mask,
+                            class_ch,
+                            highlight=True
+                        )
+                        sample_extra.setdefault("oba_bbox", []).append(bbox)
+                    else:
+                        cum_image, cum_mask = oba.paste_object(
+                            cum_image, cum_mask,
+                            obj_img, obj_mask,
+                            class_ch
+                        )
+
+                # commit the augmented image+mask
+                image, mask = cum_image, cum_mask
+
+        # 3) any other albumentations
         if self.augmentations is not None:
-            sample_dict = {"image": image, "mask": mask}
-            sample_dict = self.augmentations(**sample_dict)
-            image, mask = sample_dict["image"], sample_dict["mask"]
+            tmp = self.augmentations(image=image, mask=mask)
+            image, mask = tmp["image"], tmp["mask"]
 
-        # Convert to channels-first format and normalize before returning
-        image = image.transpose(2, 0, 1)  # (12, H, W)
-        mask = mask.transpose(2, 0, 1)    # (4, H, W)
+        # 4) to channels-first & normalize
+        image = image.transpose(2, 0, 1)  # → (12, H, W)
+        mask  = mask.transpose(2, 0, 1)   # → ( 4, H, W)
         image = normalize_image(image)
-        
-        sample = {"image": image, "mask": mask, "image_path": str(self.image_paths[idx])}
+
+        # 5) build final sample
+        sample = {
+            "image": image,
+            "mask":  mask,
+            "image_path": str(self.image_paths[idx])
+        }
         sample.update(sample_extra)
         return sample
