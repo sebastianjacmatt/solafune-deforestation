@@ -13,8 +13,8 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import TrainValDataset, OBAValDataset
-from config import SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES, NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS
-from src.utils.global_paths import DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH
+from config import SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES, NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS, BACKGROUND_PROB, EXTRACT_FROM_SAME_IMAGE, OBA_PROB, NUM_OBA_OBJECTS
+from src.utils.global_paths import DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
 from model import Model
 
 
@@ -125,10 +125,16 @@ def prepare_dataloaders_oba():
         data_root=DATASET_PATH,
         sample_indices=train_indices,
         annotations_path=TRAIN_ANNOTATIONS_PATH,
+        background_root=SEPARATE_BACKGROUND_IMAGES,
+        background_prob=BACKGROUND_PROB,
+        extract_from_same_image=EXTRACT_FROM_SAME_IMAGE,
         augmentations=get_augmentations(),
         use_oba=True,
-        oba_prob=1.0 # Set to 100% for testing, then reduce later
+        oba_prob=OBA_PROB,
+        visualize=False,
+        num_oba_objects=NUM_OBA_OBJECTS
     )
+
     val_dataset = TrainValDataset(
         data_root=DATASET_PATH,
         sample_indices=val_indices,

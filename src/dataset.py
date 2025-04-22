@@ -17,7 +17,7 @@ import oba as oba
 from object_augmentation import augment_object
 
 from data_utils import load_image, load_mask, normalize_image
-from config import NUM_EVAL_INDICIES, CLASS_NAMES
+from config import NUM_EVAL_INDICIES, CLASS_NAMES, MAX_EXTRACT_TRIES
 
 class TrainValDataset(Dataset):
     def __init__(self, data_root, sample_indices, augmentations=None):
@@ -94,8 +94,20 @@ import random
 
 
 class OBAValDataset(Dataset):
-    def __init__(self, data_root, sample_indices, annotations_path, augmentations=None,
-                 use_oba=True, oba_prob=0.5, visualize=False, num_oba_objects=1):
+    def __init__(
+        self,
+        data_root,
+        sample_indices,
+        annotations_path,
+        background_root=None,
+        background_prob=0.3,
+        extract_from_same_image=False,
+        augmentations=None,
+        use_oba=True,
+        oba_prob=0.5,
+        visualize=False,
+        num_oba_objects=1
+    ):
         """
         data_root: Path to the dataset.
         sample_indices: Which train_X.* files to use.
@@ -114,11 +126,14 @@ class OBAValDataset(Dataset):
         self.oba_prob = oba_prob
         self.visualize = visualize
         self.num_oba_objects = num_oba_objects
+        self.extract_from_same_image = extract_from_same_image
+        self.background_prob = background_prob
 
         # Load annotations from the JSON file
         with open(annotations_path, 'r') as f:
             annotations_data = json.load(f)
         self.annotations = annotations_data.get('images', [])
+
 
         # Create a pool of images to use for augmentation
         self.pool = []
@@ -126,6 +141,13 @@ class OBAValDataset(Dataset):
             img_path = data_root/"train_images"/img_item["file_name"]
             for ann in img_item.get("annotations", []):
                 self.pool.append((img_path, ann))
+        
+        # optionally build list of background tif paths
+        if background_root:
+            bgdir = Path(background_root)
+            self.background_paths = [p for p in bgdir.iterdir() if p.suffix.lower() in (".tif", ".png", ".jpg")]
+        else:
+            self.background_paths = []
         
         # Create a mapping from image file name to annotations list
         self.image_to_annotations = {}
@@ -148,26 +170,37 @@ class OBAValDataset(Dataset):
         # 1) Load base image & mask
         image = load_image(self.image_paths[idx])  # (1024,1024,12)
         mask  = load_mask(self.mask_paths[idx])    # (1024,1024, 4)
-
         sample_extra = {}
-        cum_image = image.copy()
-        cum_mask  = mask.copy()
 
-        # 2) Maybe apply OBA across the pool
+        # 2) Decide whether to use a background image instead
+        if getattr(self, "background_paths", None) and np.random.rand() < self.background_prob:
+            # pick a random background (no pre-existing deforestation mask)
+            bg_path = random.choice(self.background_paths)
+            cum_image = load_image(bg_path)
+            # start with an empty 4‑channel mask
+            H, W, _ = cum_image.shape
+            cum_mask = np.zeros((H, W, mask.shape[2]), dtype=mask.dtype)
+        else:
+            cum_image = image.copy()
+            cum_mask  = mask.copy()
+
+        # 3) Maybe apply OBA
         if self.use_oba and np.random.rand() < self.oba_prob:
-            MAX_EXTRACT_TRIES = 5
-
             for _ in range(self.num_oba_objects):
-                # Attempt up to MAX_EXTRACT_TRIES to get a valid raw object
-                for attempt in range(MAX_EXTRACT_TRIES):
-                    # pick a random (source_image, annotation) pair
-                    src_path, ann = random.choice(self.pool)
-                    # (optionally skip same‐image if you want)
-                    if src_path == self.image_paths[idx]:
-                        continue
+                # try to get a valid object up to MAX_EXTRACT_TRIES
+                for _try in range(MAX_EXTRACT_TRIES):
+                    if self.extract_from_same_image:
+                        # only sample from this image's annotations
+                        anns = self.annotations_for_image(self.image_paths[idx])
+                        if not anns:
+                            break
+                        ann    = random.choice(anns)
+                        src_img = image
+                    else:
+                        # sample from the full pool
+                        src_path, ann = random.choice(self.pool)
+                        src_img = load_image(src_path)
 
-                    # load that source image
-                    src_img = load_image(src_path)
                     raw_img, raw_mask = oba.extract_object(
                         src_img,
                         ann["segmentation"],
@@ -176,13 +209,13 @@ class OBAValDataset(Dataset):
                     if raw_img is not None:
                         break
                 else:
-                    # no valid crop found for this slot
+                    # failed to get anything this slot
                     continue
 
-                # 2b) object‐level augs
+                # 3a) object-level augs
                 obj_img, obj_mask = augment_object(raw_img, raw_mask)
 
-                # 2c) paste into cum_image / cum_mask
+                # 3b) paste into cum_image / cum_mask
                 ch = self.class_to_channel(ann["class"])
                 if self.visualize:
                     cum_image, cum_mask, bbox = oba.paste_object(
@@ -198,23 +231,23 @@ class OBAValDataset(Dataset):
                         ch
                     )
 
-            # commit augmented version
+            # commit the augmented image+mask
             image, mask = cum_image, cum_mask
 
-        # 3) any further albumentations
+        # 4) any further albumentations
         if self.augmentations is not None:
             tmp = self.augmentations(image=image, mask=mask)
             image, mask = tmp["image"], tmp["mask"]
 
-        # 4) format for model: (C, H, W) + normalize
+        # 5) to channels-first & normalize
         image = image.transpose(2, 0, 1)
         mask  = mask.transpose(2, 0, 1)
         image = normalize_image(image)
 
-        # 5) build return dict
+        # 6) return
         sample = {
-            "image": image,
-            "mask":  mask,
+            "image":      image,
+            "mask":       mask,
             "image_path": str(self.image_paths[idx])
         }
         sample.update(sample_extra)

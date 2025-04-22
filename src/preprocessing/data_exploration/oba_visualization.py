@@ -6,6 +6,7 @@ sys.path.append(os.path.join(project_root, "src"))
 src_root = os.path.abspath(os.path.join(project_root, "src/"))
 sys.path.append(os.path.join(src_root, "utils"))
 
+from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -96,12 +97,57 @@ def visualize_both_samples(original_dataset, oba_dataset, index=0):
     plt.show()
 
 
+def visualize_external_background_pair(
+    data_root: Path,
+    annotations_path: Path,
+    background_root: Path,
+    sample_indices: list,
+    index: int = 0,
+    num_oba_objects: int = 5
+):
+    """
+    Left panel: ONLY the external background (no OBA).
+    Right panel: The same background + Pasted objects.
+    """
+    # 1) External background only
+    original_bg = OBAValDataset(
+        data_root=data_root,
+        sample_indices=sample_indices,
+        annotations_path=annotations_path,
+        augmentations=None,
+        use_oba=True,
+        oba_prob=1.0,
+        visualize=True,
+        num_oba_objects=0, # no objects
+        background_root=str(background_root),
+        background_prob=1.0,
+        extract_from_same_image=True
+    )
+
+    # 2) External background + Pasted objects
+    oba_bg = OBAValDataset(
+        data_root=data_root,
+        sample_indices=sample_indices,
+        annotations_path=annotations_path,
+        augmentations=None,
+        use_oba=True,
+        oba_prob=1.0,
+        visualize=True,
+        num_oba_objects=num_oba_objects,
+        background_root=str(background_root),
+        background_prob=1.0,
+        extract_from_same_image=True
+    )
+
+    # Visualize both samples
+    visualize_both_samples(original_bg, oba_bg, index=index)
+
+
 if __name__ == "__main__":
     from dataset import TrainValDataset, OBAValDataset
-    from global_paths import DATASET_PATH
+    from global_paths import DATASET_PATH, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
 
-    sample_indices   = list(range(10))
-    annotations_path = DATASET_PATH / "train_annotations.json"
+    sample_indices = list(range(10))
 
     original_dataset = TrainValDataset(
         data_root=DATASET_PATH,
@@ -111,12 +157,18 @@ if __name__ == "__main__":
     oba_dataset = OBAValDataset(
         data_root=DATASET_PATH,
         sample_indices=sample_indices,
-        annotations_path=annotations_path,
+        annotations_path=TRAIN_ANNOTATIONS_PATH,
         augmentations=None,
         use_oba=True,
         oba_prob=1.0,
         visualize=True,
         num_oba_objects=5,
+        extract_from_same_image=True
     )
 
+    # Visualize how the OBA pipeline works
     visualize_both_samples(original_dataset, oba_dataset, index=1)
+    
+    # Visualize a sample from the background_images folder, uncomment the line below to try out
+    # visualize_external_background_pair(data_root=DATASET_PATH, annotations_path=TRAIN_ANNOTATIONS_PATH, background_root=SEPARATE_BACKGROUND_IMAGES, sample_indices=sample_indices, index=1, num_oba_objects=5)
+

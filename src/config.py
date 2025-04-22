@@ -13,6 +13,15 @@ NUM_EVAL_INDICIES = 2
 SCORE_THRESH = 0.5
 MIN_AREA = 20000
 
+# OBA config
+BACKGROUND_PROB = 0.3 # Probability of using a background from a separate dataset
+EXTRACT_FROM_SAME_IMAGE = False # Set to True to only extract objects from and paste onto same image
+# ^ (currently only 1 background in folder, functionality is implemented, but dataset is not gathered)
+OBA_PROB = 0.5 # Probability of using OBA on a sample during training process
+NUM_OBA_OBJECTS = 5 # Number of new augmented objects to try to paste onto image
+MAX_EXTRACT_TRIES = 5 # Number of exctracting object tries before moving on to next object
+
+
 TESTING = True # set to False for training
 
 if TESTING:
