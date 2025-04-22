@@ -6,7 +6,7 @@ sys.path.append(os.path.join(project_root, "src"))
 import albumentations as A
 from sklearn.model_selection import train_test_split
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, TQDMProgressBar
 from pytorch_lightning.loggers import TensorBoardLogger
 import torch
 
@@ -83,11 +83,12 @@ def get_trainer():
         save_last=False,
     )
     lr_monitor = LearningRateMonitor(logging_interval="step")
+    progress_bar = TQDMProgressBar(leave=True)
     tb_logger = TensorBoardLogger(save_dir=TRAIN_OUTPUT_DIR, name=None)
 
     trainer = Trainer(
         max_epochs=EPOCHS,
-        callbacks=[checkpoint_callback, lr_monitor],
+        callbacks=[checkpoint_callback, lr_monitor, progress_bar],
         logger=[tb_logger],
         precision="16-mixed",
         deterministic=True,
