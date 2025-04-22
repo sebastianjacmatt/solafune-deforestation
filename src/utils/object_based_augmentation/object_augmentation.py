@@ -7,7 +7,7 @@ def rotate_object(obj_img, obj_mask):
     h_obj, w_obj = obj_img.shape[:2]
     center = (w_obj // 2, h_obj // 2)
 
-    # build rotation matrix
+    # Build a rotation matrix
     M = cv2.getRotationMatrix2D(center, angle, 1.0)
     cos, sin = np.abs(M[0, 0]), np.abs(M[0, 1])
     nW = int(h_obj * sin + w_obj * cos)
@@ -24,7 +24,7 @@ def rotate_object(obj_img, obj_mask):
 
 def flip_object(obj_img, obj_mask):
     """Randomly flip horizontally, vertically, or both."""
-    # flipCode:  0 = X-axis; 1 = Y-axis; -1 = both
+    # FlipCode:  0 = X-axis; 1 = Y-axis; -1 = both
     choice = np.random.choice([0, 1, -1, None], p=[0.3, 0.3, 0.3, 0.1])
     if choice is None:
         return obj_img, obj_mask
@@ -40,23 +40,22 @@ def blend_in_object(obj_img, obj_mask, ksize=15, feather_radius=50):
     - ksize: gaussian blur kernel size.
     - feather_radius: how many pixels the blur fades over.
     """
-    # 1) full-object blur
+    # Full-object blur
     blurred = cv2.GaussianBlur(obj_img, (ksize, ksize), sigmaX=0)
 
-    # 2) distance to mask edge
+    # Distance to mask edge
     # dt_out: dist of each bg pixel to nearest object
     # dt_in:  dist of each object pixel to nearest bg
     dt_out = cv2.distanceTransform(1 - obj_mask, cv2.DIST_L2, 5)
     dt_in  = cv2.distanceTransform(obj_mask,     cv2.DIST_L2, 5)
-    # we only care about a band of width `feather_radius` around the edge:
     weight = np.clip(dt_out / feather_radius, 0, 1) * obj_mask \
            + np.clip(dt_in  / feather_radius, 0, 1) * (1 - obj_mask)
 
-    # smooth the weight map a bit
+    # Smooth the weight map a bit
     weight = cv2.GaussianBlur(weight, (ksize, ksize), sigmaX=0)
     weight3 = weight[:, :, None].repeat(obj_img.shape[2], axis=2)
 
-    # 3) composite with a soft ramp
+    # Composite with a soft ramp
     out_img = (obj_img * (1 - weight3) + blurred * weight3).astype(obj_img.dtype)
     return out_img, obj_mask
 
@@ -64,7 +63,7 @@ def blend_in_object(obj_img, obj_mask, ksize=15, feather_radius=50):
 
 def augment_object(obj_img, obj_mask):
     """
-    Run all object-level augmentations in sequence.
+    Run all object-level augmentations in sequence to get the final augmented object.
     """
     img, m = rotate_object(obj_img, obj_mask)
     img, m = flip_object(img, m)

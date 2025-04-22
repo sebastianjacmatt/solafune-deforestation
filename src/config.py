@@ -1,4 +1,3 @@
-EPOCHS = 2
 SEED = 42
 
 CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
@@ -25,6 +24,8 @@ MAX_EXTRACT_TRIES = 5 # Number of exctracting object tries before moving on to n
 TESTING = True # set to False for training
 
 if TESTING:
+    EPOCHS = 2
+
     # Batch sizes
     BATCH_SIZE_TRAIN = 8
     BATCH_SIZE_VAL = 1
@@ -38,6 +39,8 @@ if TESTING:
     PIN_MEMORY = False # for systems without cuda, set to false
     PERSISTNAT_WORKERS = False # for systems without cuda, set to false
 else:
+    EPOCHS = 100
+
     # Batch sizes
     BATCH_SIZE_TRAIN = 8
     BATCH_SIZE_VAL = 4

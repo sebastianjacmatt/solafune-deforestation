@@ -10,13 +10,16 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
+from dataset import TrainValDataset, OBAValDataset
+from global_paths import DATASET_PATH, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
+
 def to_rgb(img, ignore_bboxes=None):
     """
     Convert a 12-channel image (C, H, W) to an RGB image using Sentinel-2 natural color,
     stretching only on the background (excluding any pasted-object bboxes).
     """
-    # Select bands: R=4→idx3, G=3→idx2, B=2→idx1
-    rgb = img[[3, 2, 1], :, :].astype(np.float32)  # (3, H, W)
+    # Select bands RGB
+    rgb = img[[3, 2, 1], :, :].astype(np.float32)   # (3, H, W)
 
     H, W = rgb.shape[1], rgb.shape[2]
     bg_mask = np.ones((H, W), dtype=bool)
@@ -41,6 +44,10 @@ def to_rgb(img, ignore_bboxes=None):
 
 
 def visualize_both_samples(original_dataset, oba_dataset, index=0):
+    """
+    Show a 2x2 plot comparing an original sample and its OBA-augmented version.
+    Top row: original RGB and mask overlay. Bottom row: OBA RGB and mask+bbox overlay.
+    """
     sample_orig = original_dataset[index]
     sample_oba  = oba_dataset[index]
 
@@ -109,7 +116,7 @@ def visualize_external_background_pair(
     Left panel: ONLY the external background (no OBA).
     Right panel: The same background + Pasted objects.
     """
-    # 1) External background only
+    # External background only
     original_bg = OBAValDataset(
         data_root=data_root,
         sample_indices=sample_indices,
@@ -118,13 +125,13 @@ def visualize_external_background_pair(
         use_oba=True,
         oba_prob=1.0,
         visualize=True,
-        num_oba_objects=0, # no objects
+        num_oba_objects=0,  # No objects
         background_root=str(background_root),
         background_prob=1.0,
         extract_from_same_image=True
     )
 
-    # 2) External background + Pasted objects
+    # External background + Pasted objects
     oba_bg = OBAValDataset(
         data_root=data_root,
         sample_indices=sample_indices,
@@ -144,9 +151,6 @@ def visualize_external_background_pair(
 
 
 if __name__ == "__main__":
-    from dataset import TrainValDataset, OBAValDataset
-    from global_paths import DATASET_PATH, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
-
     sample_indices = list(range(10))
 
     original_dataset = TrainValDataset(
@@ -170,5 +174,5 @@ if __name__ == "__main__":
     visualize_both_samples(original_dataset, oba_dataset, index=1)
     
     # Visualize a sample from the background_images folder, uncomment the line below to try out
-    # visualize_external_background_pair(data_root=DATASET_PATH, annotations_path=TRAIN_ANNOTATIONS_PATH, background_root=SEPARATE_BACKGROUND_IMAGES, sample_indices=sample_indices, index=1, num_oba_objects=5)
+    ### visualize_external_background_pair(data_root=DATASET_PATH, annotations_path=TRAIN_ANNOTATIONS_PATH, background_root=SEPARATE_BACKGROUND_IMAGES, sample_indices=sample_indices, index=1, num_oba_objects=5)
 
