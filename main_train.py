@@ -1,13 +1,16 @@
 import sys
 import os
-project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+project_root = os.path.abspath(os.path.join(os.getcwd(), ""))
 sys.path.append(os.path.join(project_root, "src"))
+
+src_root = os.path.abspath(os.path.join(os.getcwd(), "src/"))
+sys.path.append(os.path.join(src_root, "utils"))
 
 import torch
 torch.set_float32_matmul_precision("high")
+
 from train_utils import train_model
-from global_paths import TRAIN_OUTPUT_DIR, VAL_PRED_DIR, TEST_PRED_DIR, SUBMISSION_SAVE_PATH, DATASET_PATH
-from model import Model
+from global_paths import VAL_PRED_DIR, TEST_PRED_DIR, SUBMISSION_SAVE_PATH, DATASET_PATH
 from config import SCORE_THRESH, MIN_AREA, NUM_WORKERS_TEST, BATCH_SIZE_TEST
 from dataset import TestDataset
 from torch.utils.data import DataLoader
