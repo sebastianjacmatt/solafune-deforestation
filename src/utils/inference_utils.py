@@ -10,6 +10,17 @@ from tqdm import tqdm
 from pathlib import Path
 
 def run_inference(model, loader, pred_output_dir):
+    """
+    Loads input images from folder and runs them through the model
+    The function applies sigmoid to get prediction probabilities, and saves probabilities as npy. files
+
+    
+    Args:
+        model (torch.nn.Module): The trained model used for inference.
+        loader (torch.utils.data.DataLoader): DataLoader providing batches of input images.
+        pred_output_dir (str or Path): Directory where the prediction probability masks 
+                                       will be saved as .npy files.
+    """
     pred_output_dir = Path(pred_output_dir)
     pred_output_dir.mkdir(exist_ok=True, parents=True)
 
