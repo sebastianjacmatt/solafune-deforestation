@@ -4,13 +4,13 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from dataset import TrainValDataset, OBAValDataset
-from global_paths import DATASET_PATH, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
-
 # Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), "../../.."))
 sys.path.append(os.path.join(project_root, "src"))
 sys.path.append(os.path.join(project_root, "src/utils"))
+
+from dataset import TrainValDataset, OBAValDataset
+from global_paths import DATASET_PATH, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
 
 def to_rgb(img, ignore_bboxes=None):
     """

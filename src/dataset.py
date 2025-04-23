@@ -6,11 +6,6 @@ import random
 from torch.utils.data import Dataset
 import numpy as np
 
-from data_utils import load_image, load_mask, normalize_image
-from config import NUM_EVAL_INDICIES, CLASS_NAMES, MAX_EXTRACT_TRIES
-import oba as oba
-from object_augmentation import augment_object
-
 # Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), "../../.."))
 sys.path.append(os.path.join(project_root, "src"))
@@ -20,6 +15,12 @@ sys.path.append(os.path.join(src_root, "utils"))
 
 utils_root = os.path.abspath(os.path.join(src_root, "utils/"))
 sys.path.append(os.path.join(utils_root, "object_based_augmentation"))
+
+from data_utils import load_image, load_mask, normalize_image
+from config import NUM_EVAL_INDICIES, CLASS_NAMES, MAX_EXTRACT_TRIES
+import oba as oba
+from object_augmentation import augment_object
+
 
 class TrainValDataset(Dataset):
     def __init__(self, data_root, sample_indices, augmentations=None):

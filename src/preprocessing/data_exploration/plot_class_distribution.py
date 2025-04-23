@@ -4,12 +4,12 @@ import json
 import matplotlib.pyplot as plt
 from collections import Counter
 
-from global_paths import TRAIN_ANNOTATIONS_PATH
-
 # Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), "../../.."))
 sys.path.append(os.path.join(project_root, "src"))
 sys.path.append(os.path.join(project_root, "src/utils"))
+
+from global_paths import TRAIN_ANNOTATIONS_PATH
 
 # Load all annotations
 with open(TRAIN_ANNOTATIONS_PATH, 'r') as file:

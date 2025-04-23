@@ -6,10 +6,11 @@ import segmentation_models_pytorch as smp
 from timm.optim import create_optimizer_v2
 from timm.scheduler import create_scheduler_v2
 
-from config import EPOCHS, CLASS_NAMES
-
+# Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(os.path.join(project_root, "src"))
+
+from config import EPOCHS, CLASS_NAMES
 
 class Model(pl.LightningModule):
     def __init__(self):

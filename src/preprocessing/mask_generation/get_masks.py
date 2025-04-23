@@ -6,12 +6,12 @@ import cv2
 import numpy as np
 from tqdm import tqdm
 
-from global_paths import DATASET_PATH
-
 # Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), "../../.."))
 sys.path.append(os.path.join(project_root, "src"))
 sys.path.append(os.path.join(project_root, "src/utils"))
+
+from global_paths import DATASET_PATH
 
 train_file_names = [f"train_{i}.tif" for i in range(176)]  # train_0.tif ~ train_175.tif
 class_names = ["grassland_shrubland", "logging", "mining", "plantation"]
