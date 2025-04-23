@@ -53,7 +53,6 @@ These methods were adapted and integrated into our preprocessing and training pi
 │   │   │   ├── data_visualization.py       # Plots about input images and spectral bands
 │   │   │   ├── oba_visualization.py        # Visualization of OBA-pipeline output
 │   │   │   └── plot_class_distribution.py  # Plots class distribution on training set
-
 │   │   └── mask_generation        # Tools to create and manipulate segmentation masks
 │   │       ├── generate_masks.py         # Pipeline to generate masks from annotations
 │   │       ├── get_masks.py              # Helper functions to fetch or format masks
