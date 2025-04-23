@@ -13,6 +13,7 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, TQDMProgressBar
 from pytorch_lightning.loggers import TensorBoardLogger
 import torch
+import segmentation_models_pytorch as smp
 
 from torch.utils.data import DataLoader
 
@@ -224,8 +225,24 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
             )
             train_loss += batch_loss 
 
+            logits = model(images)
+            prob_mask = logits.sigmoid()
+            threshold = 0.5
+            tp, fp, fn, tn = smp.metrics.get_stats(
+                (prob_mask > threshold).long(),
+                masks.long(),
+                mode=smp.losses.MULTILABEL_MODE,
+            )
+            train_tp += tp.sum().item()
+            train_fp += fp.sum().item()
+            train_fn += fn.sum().item()
+            train_tn += tn.sum().item()
+
         train_loss /= len(train_loader)
-        print(f"Training Loss: {train_loss:.4f}")
+        train_f1 = smp.metrics.f1_score(
+            torch.tensor(train_tp), torch.tensor(train_fp), torch.tensor(train_fn), torch.tensor(train_tn)
+        )
+        print(f"Training Loss: {train_loss:.4f}, Training F1: {train_f1:.4f}")
 
         # Validation loop
         model.eval()
@@ -238,8 +255,22 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
                 loss = model.dice_loss_fn(logits, masks) + model.bce_loss_fn(logits, masks)
                 val_loss += loss.item()
 
+                prob_mask = logits.sigmoid()
+                tp, fp, fn, tn = smp.metrics.get_stats(
+                    (prob_mask > threshold).long(),
+                    masks.long(),
+                    mode=smp.losses.MULTILABEL_MODE,
+                )
+                val_tp += tp.sum().item()
+                val_fp += fp.sum().item()
+                val_fn += fn.sum().item()
+                val_tn += tn.sum().item()
+
         val_loss /= len(val_loader)
-        print(f"Validation Loss: {val_loss:.4f}")
+        val_f1 = smp.metrics.f1_score(
+            torch.tensor(val_tp), torch.tensor(val_fp), torch.tensor(val_fn), torch.tensor(val_tn)
+        )
+        print(f"Validation Loss: {val_loss:.4f}, Validation F1: {val_f1:.4f}")
 
         if scheduler:
             scheduler.step(epoch)

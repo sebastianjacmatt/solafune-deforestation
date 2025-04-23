@@ -10,6 +10,7 @@ from tqdm import tqdm
 from pathlib import Path
 
 def run_inference(model, loader, pred_output_dir):
+    
     pred_output_dir = Path(pred_output_dir)
     pred_output_dir.mkdir(exist_ok=True, parents=True)
 
