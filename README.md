@@ -61,3 +61,48 @@ for later -->
 **Models Selection**
 - Ensamble different models for different channels
 - implement performance metric from solafune competition
+
+
+## Project Structure
+.
+├── data                        # Contains all input data for training and evaluation
+│   ├── background_images/
+│   ├── evaluation_images/
+│   ├── train_images/
+│   ├── train_masks/
+│   └── train_annotations.json
+├── models  
+│   └── checkpoints/
+├── outputs
+│   ├── predictions
+│   │   └── val_preds/
+│   ├── submissions
+│   │   ├── 0.57/
+│   │   └── sample_answer.json
+│   └── visualizations
+├── src
+│   ├── preprocessing
+│   │   ├── data_exploration
+│   │   │   ├── data_visualization.py
+│   │   │   └── oba_visualization.py
+│   │   └── mask_generation
+│   │       ├── generate_masks.py
+│   │       ├── get_masks.py
+│   │       └── visualize_masks.py
+│   ├── utils
+│   │   ├── object_based_augmentation
+│   │   │   ├── oba.py
+│   │   │   └── object_augmentation.py
+│   │   ├── data_utils.py
+│   │   ├── global_paths.py
+│   │   ├── inference_utils.py
+│   │   ├── oba_augmentation.py
+│   │   └── train_utils.py
+│   ├── augmentation.py
+│   ├── config.py
+│   ├── dataset.py
+│   ├── invariance_constrained.py
+│   ├── model.py
+│   └── postprocess.py
+├── ...
+└── main_train.py
