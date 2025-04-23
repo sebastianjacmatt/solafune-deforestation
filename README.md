@@ -1,5 +1,22 @@
 # solafune-deforestation
 
+## About the Solafune Deforestation Challenge
+
+This project was developed for the [Solafune Deforestation Challenge](https://solafune.com), a global machine learning competition focused on detecting and segmenting drivers of deforestation from high-resolution satellite imagery. 
+
+Our model was designed to identify four specific classes of human or land-use activity contributing to deforestation:
+- `grassland_shrubland`
+- `logging`
+- `mining`
+- `plantation`
+
+The goal of the challenge is to support sustainable land-use monitoring and informed decision-making through AI-powered environmental insights.
+
+
+## Applications of research papers to the project
+
+To create the best possible model for our project, we implemented three different research papers
+
 ## setting up the environment
 
 This project uses conda with a list of dependencies in the environment.yml file
@@ -39,7 +56,7 @@ Then you update the environment, make sure you are in the root directory and run
 
 
 ## Project Structure
-<pre> ```
+<pre>
 .
 ├── data                           # Contains all input data for training and evaluation
 │   ├── background_images/         # Background-only satellite image(s), a separate set for OBA 
@@ -83,7 +100,7 @@ Then you update the environment, make sure you are in the root directory and run
 │   └── postprocess.py            # Post-processing of raw predictions (e.g., thresholding)
 ├── ...                           # Other project-level files (e.g., .gitignore, enviorments)
 └── main_train.py                 # Entry point script to train the model
-``` </pre>
+</pre>
 
 
 
