@@ -9,11 +9,14 @@ import os
 project_root = os.path.abspath(os.path.join(os.getcwd(), "../../.."))
 sys.path.append(os.path.join(project_root, "src"))
 
+src_root = os.path.abspath(os.path.join(project_root, "src/"))
+sys.path.append(os.path.join(src_root, "utils"))
 
 
-from paths import DATASET_PATH, TRAIN_IMAGES_PATH, EVAL_IMAGES_PATH, TRAIN_ANNOTATIONS_PATH
 
-from utilities import convert_to_geojson
+
+from global_paths import DATASET_PATH, TRAIN_IMAGES_PATH, EVAL_IMAGES_PATH, TRAIN_ANNOTATIONS_PATH
+
 
 
 # Load annotations
