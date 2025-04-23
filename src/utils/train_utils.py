@@ -10,15 +10,22 @@ sys.path.append(os.path.join(project_root, "src"))
 import albumentations as A
 from sklearn.model_selection import train_test_split
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor
+from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, TQDMProgressBar
 from pytorch_lightning.loggers import TensorBoardLogger
 import torch
 
 from torch.utils.data import DataLoader
 
 from dataset import TrainValDataset, OBAValDataset
-from config import EPSILON, ETA_D, ETA_P, GAMMA, M_SAMPLES, N_MH_STEPS, SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES, NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS
-from global_paths import DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH
+from config import (
+    EPSILON, ETA_D, ETA_P, GAMMA, M_SAMPLES, N_MH_STEPS, SEED, EPOCHS,
+    BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES,
+    NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS,
+    BACKGROUND_PROB, EXTRACT_FROM_SAME_IMAGE, OBA_PROB, NUM_OBA_OBJECTS
+)
+from src.utils.global_paths import (
+    DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
+)
 from model import Model
 
 
@@ -88,11 +95,12 @@ def get_trainer():
         save_last=False,
     )
     lr_monitor = LearningRateMonitor(logging_interval="step")
+    progress_bar = TQDMProgressBar(leave=True)
     tb_logger = TensorBoardLogger(save_dir=TRAIN_OUTPUT_DIR, name=None)
 
     trainer = Trainer(
         max_epochs=EPOCHS,
-        callbacks=[checkpoint_callback, lr_monitor],
+        callbacks=[checkpoint_callback, lr_monitor, progress_bar],
         logger=[tb_logger],
         precision="16-mixed",
         deterministic=True,
@@ -139,10 +147,16 @@ def prepare_dataloaders_oba():
         data_root=DATASET_PATH,
         sample_indices=train_indices,
         annotations_path=TRAIN_ANNOTATIONS_PATH,
+        background_root=SEPARATE_BACKGROUND_IMAGES,
+        background_prob=BACKGROUND_PROB,
+        extract_from_same_image=EXTRACT_FROM_SAME_IMAGE,
         augmentations=get_augmentations(),
         use_oba=True,
-        oba_prob=1.0 # Set to 100% for testing, then reduce later
+        oba_prob=OBA_PROB,
+        visualize=False,
+        num_oba_objects=NUM_OBA_OBJECTS
     )
+
     val_dataset = TrainValDataset(
         data_root=DATASET_PATH,
         sample_indices=val_indices,

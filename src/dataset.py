@@ -6,19 +6,28 @@ sys.path.append(os.path.join(project_root, "src"))
 src_root = os.path.abspath(os.path.join(project_root, "src/"))
 sys.path.append(os.path.join(src_root, "utils"))
 
-import torch
+utils_root = os.path.abspath(os.path.join(src_root, "utils/"))
+sys.path.append(os.path.join(utils_root, "object_based_augmentation"))
+
+
 from torch.utils.data import Dataset
 import numpy as np
 
-import oba as oba
 from data_utils import load_image, load_mask, normalize_image
-from config import NUM_EVAL_INDICIES
+from config import NUM_EVAL_INDICIES, CLASS_NAMES, MAX_EXTRACT_TRIES
+
+import oba as oba
+from object_augmentation import augment_object
+
+import json
+from pathlib import Path
+import random
 
 class TrainValDataset(Dataset):
     def __init__(self, data_root, sample_indices, augmentations=None):
         """
         data_root: Path to dataset
-        sample_indices: which train_X.* files to use
+        sample_indices: Which train_X.* files to use
         augmentations: albumentations.Compose or None
         """
         self.image_paths = [
@@ -36,17 +45,17 @@ class TrainValDataset(Dataset):
         image = load_image(self.image_paths[idx])  # shape: (1024, 1024, 12)
         mask = load_mask(self.mask_paths[idx])    # shape: (1024, 1024, 4)
 
-        # albumentations expects dict with keys = ["image", "mask"]
+        # Albumentations expects dict with keys = ["image", "mask"]
         sample = {"image": image, "mask": mask}
         if self.augmentations is not None:
             sample = self.augmentations(**sample)  # apply aug
         # sample["image"] = (H, W, C), sample["mask"] = (H, W, 4)
 
-        # put channels first
+        # Put the channels first
         sample["image"] = sample["image"].transpose(2, 0, 1)
         sample["mask"] = sample["mask"].transpose(2, 0, 1)
 
-        # normalize the image
+        # Normalize the image
         sample["image"] = normalize_image(sample["image"])
 
         return {
@@ -71,7 +80,7 @@ class TestDataset(Dataset):
 
     def __getitem__(self, idx):
         image = load_image(self.image_paths[idx])
-        # shape is (1024, 1024, 12); normalize expects (12, H, W)
+        # Shape is (1024, 1024, 12); Normalize expects (12, H, W)
         image = image.transpose(2, 0, 1)
         image = normalize_image(image)
 
@@ -81,24 +90,65 @@ class TestDataset(Dataset):
         }
 
 
-import json
-
-from pathlib import Path
-
-# In dataset.py, inside OBAValDataset:
-
 class OBAValDataset(Dataset):
-    def __init__(self, data_root, sample_indices, annotations_path, augmentations=None,
-                 use_oba=True, oba_prob=0.5, visualize=False, num_oba_objects=1):
+    def __init__(
+        self,
+        data_root,
+        sample_indices,
+        annotations_path,
+        background_root=None,
+        background_prob=0.3,
+        extract_from_same_image=False,
+        augmentations=None,
+        use_oba=True,
+        oba_prob=0.5,
+        visualize=False,
+        num_oba_objects=1
+    ):
         """
-        data_root: Path to the dataset.
-        sample_indices: Which train_X.* files to use.
-        annotations_path: Path to train_annotations.json.
-        augmentations: albumentations.Compose or None.
-        use_oba: Boolean flag to apply OBA augmentation.
-        oba_prob: Probability of applying OBA augmentation.
-        visualize: Flag to add additional visualization info.
-        num_oba_objects: Number of objects to extract and paste per image.
+        Create a dataset that optionally applies Object-Based Augmentation (OBA) 
+        by cutting objects from annotated polygons and pasting them either back 
+        into the same image or onto other background images.
+
+        Parameters:
+            data_root : Path-like
+                Root directory of the dataset. Expects subfolders `train_images/` and `train_masks/`.
+
+            sample_indices : Sequence of int
+                List of indices indicating which `train_{i}.tif` and `train_{i}.npy` files to load.
+
+            annotations_path : Path-like
+                Path to the JSON file containing polygon annotations under `"images"`.
+
+            background_root : Path-like, optional (default=None)
+                Directory of additional images to use as background canvases when
+                `background_prob` > 0. If None, only original images are used.
+
+            background_prob : float, default=0.3
+                Probability of replacing the original background with a random image
+                from `background_root` before pasting objects.
+
+            extract_from_same_image : bool, default=False
+                If True, objects are always cut from the same image being augmented.
+                If False, objects are drawn from a pool of all annotated images.
+
+            augmentations : albumentations.Compose or None, default=None
+                Additional per-sample augmentations to apply *after* OBA (e.g., flips, crops).
+
+            use_oba : bool, default=True
+                Master switch to enable or disable the OBA cut-and-paste step.
+
+            oba_prob : float, default=0.5
+                Probability of performing OBA on any given sample. When disabled, returns
+                only the original image and mask.
+
+            visualize : bool, default=False
+                If True, records each pasted object's bounding box in `sample["oba_bbox"]`
+                for visualization.
+
+            num_oba_objects : int, default=1
+                Number of objects to attempt to cut and paste into each sample.
+
         """
         self.data_root = data_root
         self.image_paths = [data_root / "train_images" / f"train_{i}.tif" for i in sample_indices]
@@ -108,11 +158,28 @@ class OBAValDataset(Dataset):
         self.oba_prob = oba_prob
         self.visualize = visualize
         self.num_oba_objects = num_oba_objects
-        
+        self.extract_from_same_image = extract_from_same_image
+        self.background_prob = background_prob
+
         # Load annotations from the JSON file
         with open(annotations_path, 'r') as f:
             annotations_data = json.load(f)
         self.annotations = annotations_data.get('images', [])
+
+
+        # Create a pool of images to use for augmentation
+        self.pool = []
+        for img_item in self.annotations:
+            img_path = data_root/"train_images"/img_item["file_name"]
+            for ann in img_item.get("annotations", []):
+                self.pool.append((img_path, ann))
+        
+        # optionally build list of background tif paths
+        if background_root:
+            bgdir = Path(background_root)
+            self.background_paths = [p for p in bgdir.iterdir() if p.suffix.lower() in (".tif", ".png", ".jpg")]
+        else:
+            self.background_paths = []
         
         # Create a mapping from image file name to annotations list
         self.image_to_annotations = {}
@@ -124,66 +191,96 @@ class OBAValDataset(Dataset):
         return self.image_to_annotations.get(filename, [])
     
     def class_to_channel(self, cls):
-        mapping = {
-            'plantation': 0,
-            'grassland_shrubland': 1,
-            'mining': 2,
-            'logging': 3
-        }
+        mapping = { name: idx for idx, name in enumerate(CLASS_NAMES) }
+        # e.g. { "grassland_shrubland": 0, "logging": 1, "mining": 2, "plantation": 3 }
         return mapping.get(cls, 0)
     
     def __len__(self):
         return len(self.image_paths)
     
     def __getitem__(self, idx):
-        image = load_image(self.image_paths[idx])  # Original image (1024, 1024, 12)
-        mask = load_mask(self.mask_paths[idx])      # Original mask (1024, 1024, 4)
-        
+        # 1) Load base image & mask
+        image = load_image(self.image_paths[idx])  # (1024,1024,12)
+        mask  = load_mask(self.mask_paths[idx])    # (1024,1024, 4)
         sample_extra = {}
-        
-        # Check if we should apply OBA augmentation
+
+        # 2) Decide whether to use a background image instead
+        if getattr(self, "background_paths", None) and np.random.rand() < self.background_prob:
+            # pick a random background (no pre-existing deforestation mask)
+            bg_path = random.choice(self.background_paths)
+            cum_image = load_image(bg_path)
+            # start with an empty 4‑channel mask
+            H, W, _ = cum_image.shape
+            cum_mask = np.zeros((H, W, mask.shape[2]), dtype=mask.dtype)
+        else:
+            cum_image = image.copy()
+            cum_mask  = mask.copy()
+
+        # 3) Maybe apply OBA
         if self.use_oba and np.random.rand() < self.oba_prob:
-            annotations = self.annotations_for_image(self.image_paths[idx])
-            if annotations:
-                # Use a cumulative target image and mask that get updated each iteration.
-                cum_image = image.copy()
-                cum_mask = mask.copy()
-                
-                for _ in range(self.num_oba_objects):
-                    annotation = np.random.choice(annotations)
-                    polygon = annotation['segmentation']
-                    obj_img, obj_mask = oba.extract_object(cum_image, polygon, padding=5)
-                    if obj_img is not None:
-                        class_channel = self.class_to_channel(annotation['class'])
-                        # Update the cumulative image and mask with each pasted object.
-                        if self.visualize:
-                            cum_image, cum_mask, bbox = oba.paste_object(
-                                cum_image, cum_mask, obj_img, obj_mask, class_channel, highlight=True
-                            )
-                            # Store multiple bounding boxes in a list for visualization.
-                            if "oba_bbox" not in sample_extra:
-                                sample_extra["oba_bbox"] = [bbox]
-                            else:
-                                sample_extra["oba_bbox"].append(bbox)
-                        else:
-                            cum_image, cum_mask = oba.paste_object(
-                                cum_image, cum_mask, obj_img, obj_mask, class_channel
-                            )
-                # Replace the original image and mask with the cumulative version.
-                image = cum_image
-                mask = cum_mask
+            for _ in range(self.num_oba_objects):
+                # try to get a valid object up to MAX_EXTRACT_TRIES
+                for _try in range(MAX_EXTRACT_TRIES):
+                    if self.extract_from_same_image:
+                        # only sample from this image's annotations
+                        anns = self.annotations_for_image(self.image_paths[idx])
+                        if not anns:
+                            break
+                        ann    = random.choice(anns)
+                        src_img = image
+                    else:
+                        # sample from the full pool
+                        src_path, ann = random.choice(self.pool)
+                        src_img = load_image(src_path)
 
-        # Optionally apply additional augmentations
+                    raw_img, raw_mask = oba.extract_object(
+                        src_img,
+                        ann["segmentation"],
+                        padding=5
+                    )
+                    if raw_img is not None:
+                        break
+                else:
+                    # failed to get anything this slot
+                    continue
+
+                # 3a) object-level augs
+                obj_img, obj_mask = augment_object(raw_img, raw_mask)
+
+                # 3b) paste into cum_image / cum_mask
+                ch = self.class_to_channel(ann["class"])
+                if self.visualize:
+                    cum_image, cum_mask, bbox = oba.paste_object(
+                        cum_image, cum_mask,
+                        obj_img, obj_mask,
+                        ch, highlight=True
+                    )
+                    sample_extra.setdefault("oba_bbox", []).append(bbox)
+                else:
+                    cum_image, cum_mask = oba.paste_object(
+                        cum_image, cum_mask,
+                        obj_img, obj_mask,
+                        ch
+                    )
+
+            # commit the augmented image+mask
+            image, mask = cum_image, cum_mask
+
+        # 4) any further albumentations
         if self.augmentations is not None:
-            sample_dict = {"image": image, "mask": mask}
-            sample_dict = self.augmentations(**sample_dict)
-            image, mask = sample_dict["image"], sample_dict["mask"]
+            tmp = self.augmentations(image=image, mask=mask)
+            image, mask = tmp["image"], tmp["mask"]
 
-        # Convert to channels-first format and normalize before returning
-        image = image.transpose(2, 0, 1)  # (12, H, W)
-        mask = mask.transpose(2, 0, 1)    # (4, H, W)
+        # 5) to channels-first & normalize
+        image = image.transpose(2, 0, 1)
+        mask  = mask.transpose(2, 0, 1)
         image = normalize_image(image)
-        
-        sample = {"image": image, "mask": mask, "image_path": str(self.image_paths[idx])}
+
+        # 6) return
+        sample = {
+            "image":      image,
+            "mask":       mask,
+            "image_path": str(self.image_paths[idx])
+        }
         sample.update(sample_extra)
         return sample
