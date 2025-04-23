@@ -1,23 +1,20 @@
+import sys
+import os
 import rasterio
 import matplotlib.pyplot as plt
 import json
 import geopandas as gpd
 import numpy as np
 
-import sys
-import os
+from global_paths import TRAIN_IMAGES_PATH, TRAIN_ANNOTATIONS_PATH
+from convert_to_geojson import convert_to_geojson
+
+# Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), "../../.."))
 sys.path.append(os.path.join(project_root, "src"))
+sys.path.append(os.path.join(project_root, "src/utils"))
 
-src_root = os.path.abspath(os.path.join(project_root, "src/"))
-sys.path.append(os.path.join(src_root, "utils"))
-
-
-
-
-from global_paths import DATASET_PATH, TRAIN_IMAGES_PATH, EVAL_IMAGES_PATH, TRAIN_ANNOTATIONS_PATH
-
-
+# Taken from https://solafune.com/competitions/68ad4759-4686-4bb3-94b8-7063f755b43d?menu=discussion&tab=&page=3&topicId=d689d4a8-a939-4f0e-87bb-273707e8263f
 
 # Load annotations
 with open(TRAIN_ANNOTATIONS_PATH, 'r') as file:
@@ -53,7 +50,6 @@ for i in range(band_count):
 plt.tight_layout()
 plt.show()
 
-
 # Sample annotation data
 annotation_data = train_annotations['images'][0]['annotations']
 print([d['class'] for d in annotation_data])
@@ -76,6 +72,5 @@ ax1.set_title('plantation area')
 
 # Plot field segmentation
 gdf.boundary.plot(ax=ax1, color='red')
-
 
 plt.show()

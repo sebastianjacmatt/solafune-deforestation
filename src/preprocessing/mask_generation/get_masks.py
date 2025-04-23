@@ -1,21 +1,17 @@
-
+import sys
+import os
 import json
 from pathlib import Path
 import cv2
 import numpy as np
 from tqdm import tqdm
 
-import sys
-import os
-
-project_root = os.path.abspath(os.path.join(os.getcwd(), "../../../"))
-sys.path.append(os.path.join(project_root, "src"))
-
-src_root = os.path.abspath(os.path.join(project_root, "src/"))
-sys.path.append(os.path.join(src_root, "utils"))
-
 from global_paths import DATASET_PATH
 
+# Append project paths
+project_root = os.path.abspath(os.path.join(os.getcwd(), "../../.."))
+sys.path.append(os.path.join(project_root, "src"))
+sys.path.append(os.path.join(project_root, "src/utils"))
 
 train_file_names = [f"train_{i}.tif" for i in range(176)]  # train_0.tif ~ train_175.tif
 class_names = ["grassland_shrubland", "logging", "mining", "plantation"]

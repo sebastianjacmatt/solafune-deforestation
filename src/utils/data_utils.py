@@ -1,12 +1,12 @@
 import sys
 import os
-project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
-sys.path.append(os.path.join(project_root, "src"))
-
 import numpy as np
 import tifffile
 
 from config import MEAN, STD
+
+project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+sys.path.append(os.path.join(project_root, "src"))
 
 def load_mask(mask_path):
     """
