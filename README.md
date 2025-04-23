@@ -1,45 +1,34 @@
-# solafune-deforestation
+# AI-Powered Detection of Deforestation Drivers - Solafune Competition
 
-## setting up the environment
+## About the Solafune Deforestation Challenge
+This project was developed for the [Solafune Deforestation Challenge](https://solafune.com), a global machine learning competition focused on detecting and segmenting drivers of deforestation from high-resolution satellite imagery. 
 
-This project uses conda with a list of dependencies in the environment.yml file
+Our model was designed to identify four specific classes of human or land-use activity contributing to deforestation:
+- `grassland_shrubland`
+- `logging`
+- `mining`
+- `plantation`
 
-```conda env create --name solafune-deforestation --file environment.yml```
+The goal of the challenge is to support sustainable land-use monitoring and informed decision-making through AI-powered environmental insights.
 
-```conda activate solafune-deforestation```
 
-## Adding a dependency
+## Applications of Research Papers to the Project
+To develop a high-performing and generalizable segmentation model for detecting deforestation drivers, we drew inspiration from three key research papers. Each provided insights into augmentation techniques and robustness strategies that informed our implementation:
 
-Here is how you can add a new dependency or environment variable:
+- **[Object-Based Augmentation Improves Quality of Remote Sensing Semantic Segmentation](https://openreview.net/forum?id=2Mf2UAAbHR)**  
+  *Inspired our object-level augmentation pipeline to improve spatial realism and semantic diversity in training data.*
 
-add you dependency or environment variable in the environment.yml file like so:
+- **[Improving Domain Generalization with Interpolation Robustness](https://openreview.net/forum?id=Yl_4LpR_3Z)**  
+  *Motivated the use of interpolation-based augmentations to increase robustness to unseen environments and domain shifts.*
 
-```yml
-name: solafune-deforestation
-channels:
-  - defaults
-variables:
-  ./data # added a new environment variable
-dependencies:
-  - python=3.11
-  - numpy
-  - scipy
-  - scikit-learn
-  - pandas
-  - jupyter
-  - ipykernel
-  - pickleshare
-  - matplotlib
-  - pillow # here i added pillow
-```
+- **[Automatic Data Augmentation via Invariance-Constrained Learning](https://proceedings.mlr.press/v202/hounie23a/hounie23a.pdf)**  
+  *Informed our approach to learning augmentations that preserve semantic consistency while increasing variability in the data.*
 
-Then you update the environment, make sure you are in the root directory and run the command:
-
-```conda env update -f environment.yml --prune && conda deactivate && conda activate solafune-deforestation```
+These methods were adapted and integrated into our preprocessing and training pipeline to maximize generalization performance on satellite imagery.
 
 
 ## Project Structure
-<pre> ```
+<pre>
 .
 ├── data                           # Contains all input data for training and evaluation
 │   ├── background_images/         # Background-only satellite image(s), a separate set for OBA 
@@ -83,11 +72,17 @@ Then you update the environment, make sure you are in the root directory and run
 │   └── postprocess.py            # Post-processing of raw predictions (e.g., thresholding)
 ├── ...                           # Other project-level files (e.g., .gitignore, enviorments)
 └── main_train.py                 # Entry point script to train the model
-``` </pre>
+</pre>
 
 
+## Setting up the environment
+This project uses conda with a list of dependencies in the environment.yml and environment_cuda.yml file
 
-## TODO
+```conda env create --name solafune-deforestation-cpu --file environment.yml```
+```conda env create --name solafune-deforestation-gpu --file environment_cuda.yml```
 
-CREATE DOCSTRINGS/COMMENTS FOR EVERY FUNCTION IN ENTIRE CODEBASE
-ADD EXPLANATION ABOUT THE COMPETITION AND BACKGROUND INFORMATION ABOUT THE PROJECTTO README
+```conda activate solafune-deforestation-cpu``` or ```conda activate solafune-deforestation-gpu``` given you preffered training device.
+
+
+## Configuration
+All hyperparameters, paths, and model settings are stored in `src/config.py`. Edit this file to customize training or inference behavior.
