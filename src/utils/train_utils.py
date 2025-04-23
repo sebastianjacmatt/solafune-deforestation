@@ -120,8 +120,7 @@ def train_model(use_oba=False, use_icl=False):
         train_loader, val_loader = prepare_dataloaders_oba()
     else:
         train_loader, val_loader = prepare_dataloaders()
-    torch.cuda.empty_cache()
-    torch.cuda.reset_peak_memory_stats()
+
     model = Model()
     trainer = get_trainer()
 
