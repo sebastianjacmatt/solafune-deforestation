@@ -2,6 +2,14 @@ SEED = 42
 
 CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
 
+#VARIABLES FOR INVARIANCE_CONSTRAINED LEARNING
+EPSILON = 0.01
+ETA_D = 0.001
+ETA_P = 0.001
+GAMMA=0.1
+N_MH_STEPS=2
+M_SAMPLES=5
+
 # threshold / area for post-processing
 SCORE_THRESH = 0.5
 MIN_AREA = 20000
@@ -15,13 +23,13 @@ NUM_OBA_OBJECTS = 5 # Number of new augmented objects to try to paste onto image
 MAX_EXTRACT_TRIES = 5 # Number of exctracting object tries before moving on to next object
 
 
-TESTING = False # set to False for training
+TESTING = True # set to False for training
 
 if TESTING:
     EPOCHS = 2
 
     # Batch sizes
-    BATCH_SIZE_TRAIN = 8
+    BATCH_SIZE_TRAIN = 2
     BATCH_SIZE_VAL = 1
     BATCH_SIZE_TEST = 1
 
