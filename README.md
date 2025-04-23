@@ -64,6 +64,7 @@ for later -->
 
 
 ## Project Structure
+<pre> ```
 .
 ├── data                        # Contains all input data for training and evaluation
 │   ├── background_images/
@@ -106,3 +107,4 @@ for later -->
 │   └── postprocess.py
 ├── ...
 └── main_train.py
+``` </pre>
