@@ -24,14 +24,13 @@ def main():
     # 0) Hyperparameter tuning for invariance constrained learning
     # Best Configuration:
     #'learning_rate': 0.001, 'batch_size': 32, 'gamma': 0.1, 'epsilon': 0.01, 'eta_p': 0.001, 'eta_d': 0.001
-    """
-    if INVARIANCE_CONSTRAINED_LEARNING:
-        print("Tuning began")
-        hyperparameter_tuning()
-    """
 
+    """
+    print("Tuning began")
+    hyperparameter_tuning()
+    """
     # 1) Train
-    model, train_loader, val_loader = train_model(use_oba=False, use_icl=False)
+    model, train_loader, val_loader = train_model(use_oba=False, use_icl=True)
 
 
     # 2) Inference on val set

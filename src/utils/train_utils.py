@@ -25,7 +25,7 @@ from config import (
     BACKGROUND_PROB, EXTRACT_FROM_SAME_IMAGE, OBA_PROB, NUM_OBA_OBJECTS
 )
 from src.utils.global_paths import (
-    DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
+    DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH
 )
 from model import Model
 
@@ -36,6 +36,17 @@ train_indices, val_indices = train_test_split(
 )
 
 def get_augmentations():
+    """
+    get function for retrieving the set of augmentations to be applied to the training data.
+    
+    These augmentations include transformations such as shifting, scaling, rotating, 
+    cropping, flipping, and brightness/contrast adjustments. If the Object-Based 
+    Augmentation (OBA) implementation is enabled, these augmentations will be applied 
+    on top of the OBA-generated augmentations.
+
+    Returns:
+        albumentations.Compose
+    """
     return A.Compose([
         A.ShiftScaleRotate(
             p=0.5,
@@ -53,11 +64,36 @@ def get_augmentations():
         A.RandomBrightnessContrast(p=0.2)
     ])
 
-def prepare_dataloaders():
+def get_augmentations_invariance():
+    """
+    get function for retrieving the set of augmentations to be applied to the training data.
+    Only used with invarianced constrained learning. The augmentations are equal to get_augmentations, with p=1 for all.
+
+    Returns:
+        albumentations.Compose
+    """
+    return A.Compose([
+        A.ShiftScaleRotate(
+            p=1,
+            shift_limit=0.0625,
+            scale_limit=0.1,
+            rotate_limit=15,
+            border_mode=0,
+            interpolation=2,
+        ),
+        A.RandomCrop(p=1, width=512, height=512),
+        A.HorizontalFlip(p=1),
+        A.VerticalFlip(p=1),
+        A.Transpose(p=1),
+        A.RandomRotate90(p=1),
+        A.RandomBrightnessContrast(p=1)
+    ])
+
+def prepare_dataloaders(augmentation):
     train_dataset = TrainValDataset(
         data_root=DATASET_PATH,
         sample_indices=train_indices,
-        augmentations=get_augmentations()
+        augmentations=augmentation
     )
     val_dataset = TrainValDataset(
         data_root=DATASET_PATH,
@@ -84,6 +120,15 @@ def prepare_dataloaders():
     return train_loader, val_loader
 
 def get_trainer():
+    """
+    Configures and returns a PyTorch Trainer.
+
+    Includes Checkpoint, learning rate monitor,
+    progress bar and tensor board logger.
+
+    Returns:
+        pytorch_lightning.Trainer: A configured Trainer primed for training.
+    """
     seed_everything(SEED)
 
     checkpoint_callback = ModelCheckpoint(
@@ -117,10 +162,30 @@ def get_trainer():
 
 
 def train_model(use_oba=False, use_icl=False):
+    """
+    Runs the training loop for the model
+    The function prepares the dataloader, initializes the model and trainer and runs a fit function.
+    Contains flags for oba and invariance-constrained learning implementations.
+
+    Args:
+        use_oba (bool): If True, uses the OBA dataset for training and applies 
+                        object-based augmentations to the training samples.
+        use_icl (bool): If True, trains the model using the invariance-constrained 
+                        learning approach with a primal-dual optimization strategy.
+    Returns:
+        model (torch.nn.Module): The trained model.
+        train_loader (torch.utils.data.DataLoader): DataLoader for the training dataset.
+        val_loader (torch.utils.data.DataLoader): DataLoader for the validation dataset.
+    """
     if use_oba:
-        train_loader, val_loader = prepare_dataloaders_oba()
+        train_loader, val_loader = prepare_dataloaders_oba(get_augmentations())
+    elif use_icl:
+        train_loader, val_loader = prepare_dataloaders(None)
+    elif use_oba & use_icl:
+        train_loader, val_loader = prepare_dataloaders_oba(None)
     else:
-        train_loader, val_loader = prepare_dataloaders()
+        train_loader, val_loader = prepare_dataloaders(get_augmentations())
+
 
     model = Model()
     trainer = get_trainer()
@@ -141,16 +206,15 @@ def train_model(use_oba=False, use_icl=False):
     return model, train_loader, val_loader
 
 
-def prepare_dataloaders_oba():
+def prepare_dataloaders_oba(augmentation):
     # Use the OBA dataset for training and the original for validation
     train_dataset = OBAValDataset(
         data_root=DATASET_PATH,
         sample_indices=train_indices,
         annotations_path=TRAIN_ANNOTATIONS_PATH,
-        background_root=SEPARATE_BACKGROUND_IMAGES,
         background_prob=BACKGROUND_PROB,
         extract_from_same_image=EXTRACT_FROM_SAME_IMAGE,
-        augmentations=get_augmentations(),
+        augmentations=augmentation,
         use_oba=True,
         oba_prob=OBA_PROB,
         visualize=False,
@@ -208,6 +272,7 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
         print(f"\nEpoch {epoch + 1}/{num_epochs}")
         model.train()
         train_loss = 0.0
+        train_tp, train_fp, train_fn, train_tn = 0, 0, 0, 0
 
         for batch in tqdm(train_loader, desc="Training"):
 
@@ -220,7 +285,7 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
 
             # Perform one update step using primal-dual
             batch_loss, gamma = primal_dual_augmentation(
-                model, data_batch, get_augmentations(), optimizer, gamma, EPSILON,
+                model, data_batch, get_augmentations_invariance(), optimizer, gamma, EPSILON,
                 ETA_P, ETA_D, n_mh_steps=N_MH_STEPS, m_samples=M_SAMPLES, device=device
             )
             train_loss += batch_loss 
@@ -247,6 +312,7 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
         # Validation loop
         model.eval()
         val_loss = 0.0
+        val_tp, val_fp, val_fn, val_tn = 0, 0, 0, 0
         with torch.no_grad():
             for batch in tqdm(val_loader, desc="Validation"):
                 images = batch["image"].to(device)
@@ -282,6 +348,7 @@ from itertools import product
 def hyperparameter_tuning():
     """
     Perform hyperparameter tuning for invariance_constrained_fit.
+    Updates the relevant values from config.py globally
     """
     # Define hyperparameter search space
     learning_rates = [1e-3]
