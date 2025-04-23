@@ -35,6 +35,17 @@ train_indices, val_indices = train_test_split(
 )
 
 def get_augmentations():
+    """
+    get function for retrieving the set of augmentations to be applied to the training data.
+    
+    These augmentations include transformations such as shifting, scaling, rotating, 
+    cropping, flipping, and brightness/contrast adjustments. If the Object-Based 
+    Augmentation (OBA) implementation is enabled, these augmentations will be applied 
+    on top of the OBA-generated augmentations.
+
+    Returns:
+        albumentations.Compose
+    """
     return A.Compose([
         A.ShiftScaleRotate(
             p=0.5,
@@ -83,6 +94,15 @@ def prepare_dataloaders():
     return train_loader, val_loader
 
 def get_trainer():
+    """
+    Configures and returns a PyTorch Trainer.
+
+    Includes Checkpoint, learning rate monitor,
+    progress bar and tensor board logger.
+
+    Returns:
+        pytorch_lightning.Trainer: A configured Trainer primed for training.
+    """
     seed_everything(SEED)
 
     checkpoint_callback = ModelCheckpoint(
@@ -116,6 +136,21 @@ def get_trainer():
 
 
 def train_model(use_oba=False, use_icl=False):
+    """
+    Runs the training loop for the model
+    The function prepares the dataloader, initializes the model and trainer and runs a fit function.
+    Contains flags for oba and invariance-constrained learning implementations.
+
+    Args:
+        use_oba (bool): If True, uses the OBA dataset for training and applies 
+                        object-based augmentations to the training samples.
+        use_icl (bool): If True, trains the model using the invariance-constrained 
+                        learning approach with a primal-dual optimization strategy.
+    Returns:
+        model (torch.nn.Module): The trained model.
+        train_loader (torch.utils.data.DataLoader): DataLoader for the training dataset.
+        val_loader (torch.utils.data.DataLoader): DataLoader for the validation dataset.
+    """
     if use_oba:
         train_loader, val_loader = prepare_dataloaders_oba()
     else:
@@ -251,6 +286,7 @@ from itertools import product
 def hyperparameter_tuning():
     """
     Perform hyperparameter tuning for invariance_constrained_fit.
+    Updates the relevant values from config.py globally
     """
     # Define hyperparameter search space
     learning_rates = [1e-3]
