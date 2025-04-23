@@ -42,6 +42,7 @@ def get_augmentations():
         A.VerticalFlip(p=0.5),
         A.Transpose(p=0.5),
         A.RandomRotate90(p=0.5),
+        A.RandomBrightnessContrast(p=0.2)
     ])
 
 def prepare_dataloaders():
@@ -99,7 +100,7 @@ def get_trainer():
         sync_batchnorm=False,
         check_val_every_n_epoch=1,
         default_root_dir=".",
-        accelerator="cpu",
+        accelerator="gpu",
         devices=1,
         log_every_n_steps=1,
     )
@@ -111,6 +112,8 @@ def train_model(use_oba=False):
         train_loader, val_loader = prepare_dataloaders_oba()
     else:
         train_loader, val_loader = prepare_dataloaders()
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats()
     model = Model()
     trainer = get_trainer()
 
@@ -118,7 +121,7 @@ def train_model(use_oba=False):
         optimizer_schedulers = model.configure_optimizers()
         optimizer = optimizer_schedulers["optimizer"]
         scheduler = optimizer_schedulers["lr_scheduler"]["scheduler"]     
-        model = invariance_constrained_fit(model,train_loader,val_loader,optimizer, scheduler, EPOCHS, "cpu")
+        model = invariance_constrained_fit(model,train_loader,val_loader,optimizer, scheduler, EPOCHS, "cuda")
 
     else:
         trainer.fit(
@@ -229,4 +232,80 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
             scheduler.step(epoch)
 
     return model
+
+from itertools import product
+
+def hyperparameter_tuning():
+    """
+    Perform hyperparameter tuning for invariance_constrained_fit.
+    """
+    # Define hyperparameter search space
+    learning_rates = [1e-3]
+    batch_sizes = [16, 32]
+    gamma_values = [0.1, 0.5]
+    epsilon_values = [0.01, 0.05]
+    eta_p_values = [0.001, 0.01]
+    eta_d_values = [0.001, 0.01]
+    n_mh_steps = [2]
+
+    # Store the best configuration and its validation loss
+    best_config = None
+    best_val_loss = float("inf")
+
+    # Iterate over all combinations of hyperparameters
+    for lr, batch_size, gamma, epsilon, eta_p, eta_d, n_mh in product(
+        learning_rates, batch_sizes, gamma_values, epsilon_values, eta_p_values, eta_d_values, n_mh_steps
+    ):
+        print(f"Testing configuration: lr={lr}, batch_size={batch_size}, gamma={gamma}, epsilon={epsilon}, eta_p={eta_p}, eta_d={eta_d}, n_mh={n_mh}")
+
+        # Update global hyperparameters
+        global GAMMA, EPSILON, ETA_P, ETA_D, BATCH_SIZE_TRAIN
+        GAMMA = gamma
+        EPSILON = epsilon
+        ETA_P = eta_p
+        ETA_D = eta_d
+        BATCH_SIZE_TRAIN = batch_size
+        N_MH_STEPS = n_mh
+
+        # Prepare data loaders with the current batch size
+        train_loader, val_loader = prepare_dataloaders()
+
+        # Initialize model, optimizer, and scheduler
+        model = Model()
+        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+
+        # Train the model
+        trained_model = invariance_constrained_fit(
+            model, train_loader, val_loader, optimizer, scheduler, num_epochs=5, device="cuda"
+        )
+
+        # Evaluate validation loss
+        val_loss = 0.0
+        with torch.no_grad():
+            for batch in val_loader:
+                images = batch["image"].to("cuda")
+                masks = batch["mask"].to("cuda")
+                logits = trained_model(images)
+                loss = model.dice_loss_fn(logits, masks) + model.bce_loss_fn(logits, masks)
+                val_loss += loss.item()
+        val_loss /= len(val_loader)
+
+        print(f"Validation Loss: {val_loss:.4f}")
+
+        # Update the best configuration if the current one is better
+        if val_loss < best_val_loss:
+            best_val_loss = val_loss
+            best_config = {
+                "learning_rate": lr,
+                "batch_size": batch_size,
+                "gamma": gamma,
+                "epsilon": epsilon,
+                "eta_p": eta_p,
+                "eta_d": eta_d,
+            }
+
+    print("\nBest Configuration:")
+    print(best_config)
+    print(f"Best Validation Loss: {best_val_loss:.4f}")
 

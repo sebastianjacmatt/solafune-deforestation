@@ -20,6 +20,7 @@ def independent_mh_sampler(model, G, x, y, n_steps):
             - g (callable): The augmentation function.
             - loss (float): The loss value associated with the augmented input.    
     """
+
     g_t = np.random.choice(G) 
     gx_t = apply_albumentations(g_t, x)
     loss_t = model.dice_loss_fn(model(gx_t.unsqueeze(0)), y.unsqueeze(0)) + model.bce_loss_fn(model(gx_t.unsqueeze(0)), y.unsqueeze(0))
@@ -122,4 +123,4 @@ def apply_albumentations(g, x):
     
     x_np = x.permute(1, 2, 0).cpu().numpy()
     x_aug = g(image=x_np)["image"]
-    return torch.from_numpy(x_aug).permute(2, 0, 1)
+    return torch.from_numpy(x_aug).permute(2, 0, 1).to(x.device) 

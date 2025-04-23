@@ -1,4 +1,4 @@
-EPOCHS = 2
+EPOCHS = 25
 SEED = 42
 BATCH_SIZE_TRAIN = 32
 BATCH_SIZE_VAL = 8
@@ -7,24 +7,24 @@ CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
 
 #VARIABLES FOR INVARIANCE_CONSTRAINED LEARNING
 INVARIANCE_CONSTRAINED_LEARNING = True
-EPSILON = 0.5
-ETA_D = 0.01
-ETA_P = 0.01
+EPSILON = 0.01
+ETA_D = 0.001
+ETA_P = 0.001
 GAMMA=0.1
-N_MH_STEPS=10
+N_MH_STEPS=2
 M_SAMPLES=5
 
 # Number of sample indicies (train / val), default: 176, else less for testing
-NUM_SAMPLE_INDICIES = 2
+NUM_SAMPLE_INDICIES = 176
 
 # Number of eval indicie, default: 118, else less for testing
-NUM_EVAL_INDICIES = 2
+NUM_EVAL_INDICIES = 118
 
 # threshold / area for post-processing
 SCORE_THRESH = 0.5
 MIN_AREA = 20000
 
-TESTING = True # set to False for training
+TESTING = False # set to False for training
 
 if TESTING:
     # Batch sizes
@@ -41,14 +41,14 @@ if TESTING:
     PERSISTNAT_WORKERS = False # for systems without cuda, set to false
 else:
     # Batch sizes
-    BATCH_SIZE_TRAIN = 8
-    BATCH_SIZE_VAL = 4
-    BATCH_SIZE_TEST = 4 
+    BATCH_SIZE_TRAIN = 2
+    BATCH_SIZE_VAL = 1
+    BATCH_SIZE_TEST = 1 
 
     # Number of workers
-    NUM_WORKERS_TRAIN = 4 # set to 0 for testing
-    NUM_WORKERS_VAL = 4 # set to 0 for testing
-    NUM_WORKERS_TEST = 4 # set to 0 for testing
+    NUM_WORKERS_TRAIN = 1 # set to 0 for testing
+    NUM_WORKERS_VAL = 1 # set to 0 for testing
+    NUM_WORKERS_TEST = 1 # set to 0 for testing
 
     PIN_MEMORY = True # for systems without cuda, set to false
     PERSISTNAT_WORKERS = True # for systems without cuda, set to false

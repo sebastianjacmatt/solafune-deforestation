@@ -8,6 +8,8 @@ outputs/visualizations/*
 outputs/submissions/*
 
 
+src/training/data/
+
 # Ignore intermediate files
 *.pyc
 __pycache__/
