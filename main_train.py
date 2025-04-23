@@ -11,7 +11,7 @@ torch.set_float32_matmul_precision("high")
 
 from train_utils import train_model, hyperparameter_tuning
 from global_paths import VAL_PRED_DIR, TEST_PRED_DIR, SUBMISSION_SAVE_PATH, DATASET_PATH
-from config import SCORE_THRESH, MIN_AREA, NUM_WORKERS_TEST, BATCH_SIZE_TEST, INVARIANCE_CONSTRAINED_LEARNING
+from config import SCORE_THRESH, MIN_AREA, NUM_WORKERS_TEST, BATCH_SIZE_TEST
 from dataset import TestDataset
 from torch.utils.data import DataLoader
 from inference_utils import run_inference
@@ -28,7 +28,7 @@ def main():
     """
 
     # 1) Train
-    model, train_loader, val_loader = train_model(use_oba=False)
+    model, train_loader, val_loader = train_model(use_oba=False, use_icl=False)
 
 
     # 2) Inference on val set

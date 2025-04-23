@@ -17,7 +17,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from dataset import TrainValDataset, OBAValDataset
-from config import EPSILON, ETA_D, ETA_P, GAMMA, INVARIANCE_CONSTRAINED_LEARNING, M_SAMPLES, N_MH_STEPS, SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES, NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS
+from config import EPSILON, ETA_D, ETA_P, GAMMA, M_SAMPLES, N_MH_STEPS, SEED, EPOCHS, BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES, NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS
 from global_paths import DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH
 from model import Model
 
@@ -107,7 +107,7 @@ def get_trainer():
     return trainer
 
 
-def train_model(use_oba=False):
+def train_model(use_oba=False, use_icl=False):
     if use_oba:
         train_loader, val_loader = prepare_dataloaders_oba()
     else:
@@ -117,7 +117,7 @@ def train_model(use_oba=False):
     model = Model()
     trainer = get_trainer()
 
-    if INVARIANCE_CONSTRAINED_LEARNING:
+    if use_icl:
         optimizer_schedulers = model.configure_optimizers()
         optimizer = optimizer_schedulers["optimizer"]
         scheduler = optimizer_schedulers["lr_scheduler"]["scheduler"]     
