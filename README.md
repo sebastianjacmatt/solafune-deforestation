@@ -37,72 +37,57 @@ Then you update the environment, make sure you are in the root directory and run
 
 ```conda env update -f environment.yml --prune && conda deactivate && conda activate solafune-deforestation```
 
-## DONE
+
+## Project Structure
+<pre> ```
+.
+├── data                           # Contains all input data for training and evaluation
+│   ├── background_images/         # Background-only satellite image(s), a separate set for OBA 
+│   ├── evaluation_images/         # Unlabeled images used for model evaluation or testing
+│   ├── train_images/              # Original satellite images for training
+│   ├── train_masks/               # Ground truth segmentation masks for training images
+│   └── train_annotations.json     # Annotations for training set
+├── models                         # Stores trained models and checkpoints
+│   └── checkpoints/               # Saved weights from training epochs or best models
+├── outputs                        # All model output files (e.g., predictions, visualizations)
+│   ├── predictions                # Raw model predictions on validation/test data
+│   │   └── val_preds/             # Predicted masks or classes on validation set
+│   ├── submissions                # JSON files for leaderboard submissions
+│   │   ├── 0.57/                  # Folder named after a submission score (e.g., IoU 0.57)
+│   │   └── sample_answer.json     # Example submission format given to us by competition
+│   └── visualizations/            # Visualizations of predictions, masks, augmentations, etc.
+│       └── vis_train/             # Visualization of training images
+├── src                            # Core source code for data processing, training, etc.
+│   ├── preprocessing              # Scripts for preparing and analyzing the dataset
+│   │   ├── data_exploration       # Scripts to explore and visualize input data
+│   │   │   ├── data_visualization.py     # Plots about input images and spectral bands
+│   │   │   └── oba_visualization.py      # Visualization of OBA-pipeline output
+│   │   └── mask_generation        # Tools to create and manipulate segmentation masks
+│   │       ├── generate_masks.py         # Pipeline to generate masks from annotations
+│   │       ├── get_masks.py              # Helper functions to fetch or format masks
+│   │       └── visualize_masks.py        # Visual debugging of generated masks
+│   ├── utils                      # Utility scripts and modules
+│   │   ├── object_based_augmentation     # OBA module for cut-and-paste data augmentation
+│   │   │   ├── oba.py                     # Main class for handling OBA logic
+│   │   │   └── object_augmentation.py     # Augmentations applied to pasted objects
+│   │   ├── data_utils.py                 # General-purpose data loading and manipulation
+│   │   ├── global_paths.py               # Centralized paths used across modules
+│   │   ├── inference_utils.py            # Inference functions and postprocessing steps
+│   │   ├── oba_augmentation.py           # Pipeline for applying full OBA logic
+│   │   └── train_utils.py                # Helper functions for training loops and metrics
+│   ├── augmentation.py           # Augmentation strategies applied to training data
+│   ├── config.py                 # Global configuration for the project (paths, hyperparams)
+│   ├── dataset.py                # Custom PyTorch Dataset class for training and validation
+│   ├── invariance_constrained.py # Model training with invariance constraints (if used)
+│   ├── model.py                  # Model architecture and forward logic
+│   └── postprocess.py            # Post-processing of raw predictions (e.g., thresholding)
+├── ...                           # Other project-level files (e.g., .gitignore, enviorments)
+└── main_train.py                 # Entry point script to train the model
+``` </pre>
+
 
 
 ## TODO
 
-- Implement (https://github.com/motokimura/solafune_deforestation_baseline) in our structure
-- Use different a pretrained model that works better with sattelite data
-```py
-self.model = smp.create_model(
-            arch="unet",
-            encoder_name="tf_efficientnetv2_s",  # <-- this pre-trained model is trained on a dataset of [dogs](https://www.image-net.org/)💀
-            encoder_weights="imagenet",  # always starts from imagenet pre-trained weight
-            in_channels=12,
-            classes=4,
-        )
-```
-
-
-for later -->
-- UNET-convocational neural network scheme for segmentation
-- Transfer learning of a previosuly trained segmentation model (preferably one working with the same channels as the ones in solafune data)
-**Models Selection**
-- Ensamble different models for different channels
-- implement performance metric from solafune competition
-
-
-## Project Structure
-.
-├── data                        # Contains all input data for training and evaluation
-│   ├── background_images/
-│   ├── evaluation_images/
-│   ├── train_images/
-│   ├── train_masks/
-│   └── train_annotations.json
-├── models  
-│   └── checkpoints/
-├── outputs
-│   ├── predictions
-│   │   └── val_preds/
-│   ├── submissions
-│   │   ├── 0.57/
-│   │   └── sample_answer.json
-│   └── visualizations
-├── src
-│   ├── preprocessing
-│   │   ├── data_exploration
-│   │   │   ├── data_visualization.py
-│   │   │   └── oba_visualization.py
-│   │   └── mask_generation
-│   │       ├── generate_masks.py
-│   │       ├── get_masks.py
-│   │       └── visualize_masks.py
-│   ├── utils
-│   │   ├── object_based_augmentation
-│   │   │   ├── oba.py
-│   │   │   └── object_augmentation.py
-│   │   ├── data_utils.py
-│   │   ├── global_paths.py
-│   │   ├── inference_utils.py
-│   │   ├── oba_augmentation.py
-│   │   └── train_utils.py
-│   ├── augmentation.py
-│   ├── config.py
-│   ├── dataset.py
-│   ├── invariance_constrained.py
-│   ├── model.py
-│   └── postprocess.py
-├── ...
-└── main_train.py
+CREATE DOCSTRINGS/COMMENTS FOR EVERY FUNCTION IN ENTIRE CODEBASE
+ADD EXPLANATION ABOUT THE COMPETITION AND BACKGROUND INFORMATION ABOUT THE PROJECTTO README
