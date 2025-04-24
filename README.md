@@ -89,7 +89,8 @@ To integrate OBA into training, a dedicated dataset class is defined in `dataset
 
 
 ### Invariance-Constrained Learning
-TODO:
+The Automatic data augmentation via Invariance-Constrained Learning pipeline is implemented mainly in src/invariance_constrained.py
+The two primary functions "independent_mh_sampler" (1) and "primal_dual_augmentation" (2) corresponds with algorithms 1 and 2 from the paper. The functions are used in src/utils/train.utils with flags. If flag is activated, augmentations in the dataloader will be turned off, and a separate fit-function "invariance_constrained_fit" will instead be run. This will train the model using the method from the paper.
 
 ### Interpolation Robustness
 TODO:
