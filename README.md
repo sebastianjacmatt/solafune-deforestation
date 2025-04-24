@@ -65,7 +65,6 @@ These methods were adapted and integrated into our preprocessing and training pi
 │   │   ├── global_paths.py               # Centralized paths used across modules
 │   │   ├── inference_utils.py            # Inference functions and postprocessing steps
 │   │   └── train_utils.py                # Helper functions for training loops and metrics
-│   ├── augmentation.py           # Augmentation strategies applied to training data
 │   ├── config.py                 # Global configuration for the project (paths, hyperparams)
 │   ├── dataset.py                # Custom PyTorch Dataset class for training and validation
 │   ├── invariance_constrained.py # Model training with invariance constraints (if used)
