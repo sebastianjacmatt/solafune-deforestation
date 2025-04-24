@@ -2,6 +2,7 @@ import sys
 import os
 import numpy as np
 import tifffile
+import torch
 
 from config import MEAN, STD
 
@@ -42,3 +43,36 @@ def normalize_image(image):
     mean_arr = np.array(MEAN, dtype=np.float32).reshape(12, 1, 1)
     std_arr = np.array(STD, dtype=np.float32).reshape(12, 1, 1)
     return (image - mean_arr) / std_arr
+
+def pad_image(image, channels , padding="zeroing"):
+    """
+    Pads an image except spesified channels
+
+    Args:
+        image
+        channels: list of channels to be padded
+        padding: "zeroing" or "repitition"
+    Returns:
+        padded image
+    """
+    assert padding in ["zeroing", "repitition"], f"Invalid padding method: {padding}"
+
+def domain_image_split(image, mask , channels: list[list[int]]) -> list[dict[str, torch.Tensor]]:
+    """
+    Splits an image into spesified channel images where channels outside domains are padded
+    Args:
+        image: input image
+        mask: mask of the image
+        channels: list of channels to be split
+    Returns:
+        domain_images: dictionary of 12-channel images of different domains 
+        example:
+        ```python
+        domain_samples = [
+            {"image": image1, "mask": mask1},
+            {"image": image2, "mask": mask2},
+            ...,
+        ]
+        ```
+
+    """
