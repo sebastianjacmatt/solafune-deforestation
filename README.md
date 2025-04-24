@@ -28,6 +28,8 @@ These methods were adapted and integrated into our preprocessing and training pi
 
 
 ## Project Structure
+
+### ASCII Representation of Structure With Descriptions 
 <pre>
 .
 ├── data                           # Contains all input data for training and evaluation
@@ -65,7 +67,6 @@ These methods were adapted and integrated into our preprocessing and training pi
 │   │   ├── global_paths.py               # Centralized paths used across modules
 │   │   ├── inference_utils.py            # Inference functions and postprocessing steps
 │   │   └── train_utils.py                # Helper functions for training loops and metrics
-│   ├── augmentation.py           # Augmentation strategies applied to training data
 │   ├── config.py                 # Global configuration for the project (paths, hyperparams)
 │   ├── dataset.py                # Custom PyTorch Dataset class for training and validation
 │   ├── invariance_constrained.py # Model training with invariance constraints (if used)
@@ -74,6 +75,24 @@ These methods were adapted and integrated into our preprocessing and training pi
 ├── ...                           # Other project-level files (e.g., .gitignore, enviorments)
 └── main_train.py                 # Entry point script to train the model
 </pre>
+
+### Where the Research Papers are Impleneted
+
+### Object-Based Augmentation
+
+The Object-Based Augmentation (OBA) pipeline is primarily implemented in the `object_based_augmentation` folder under `src/utils`.
+
+- **`oba.py`** contains the main OBA class and handles object extraction, mask alignment, and placement logic.
+- **`object_augmentation.py`** performs visual transformations like rotation, flipping, and blending when objects are pasted into new backgrounds.
+
+To integrate OBA into training, a dedicated dataset class is defined in `dataset.py`. This class handles the loading of OBA-prepared samples and ensures compatibility with the training loop. The pipeline is designed to be modular and easy to toggle via a simple boolean flag `use_oba` in the main script, which switches between standard and OBA-enabled dataloaders.
+
+
+### Invariance-Constrained Learning
+TODO:
+
+### Interpolation Robustness
+TODO:
 
 
 ## Setting up the environment
