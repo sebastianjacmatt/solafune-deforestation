@@ -1,7 +1,7 @@
 # AI-Powered Detection of Deforestation Drivers - Solafune Competition
 
 ## About the Solafune Deforestation Challenge
-This project was developed for the [Solafune Deforestation Challenge](https://solafune.com), a global machine learning competition focused on detecting and segmenting drivers of deforestation from high-resolution satellite imagery. 
+This project was developed for the [Solafune Deforestation Challenge](https://solafune.com/competitions/68ad4759-4686-4bb3-94b8-7063f755b43d?menu=about&tab=overview), a global machine learning competition focused on detecting and segmenting drivers of deforestation from high-resolution satellite imagery. 
 
 Our model was designed to identify four specific classes of human or land-use activity contributing to deforestation:
 - `grassland_shrubland`
@@ -49,8 +49,10 @@ These methods were adapted and integrated into our preprocessing and training pi
 ├── src                            # Core source code for data processing, training, etc.
 │   ├── preprocessing              # Scripts for preparing and analyzing the dataset
 │   │   ├── data_exploration       # Scripts to explore and visualize input data
-│   │   │   ├── data_visualization.py     # Plots about input images and spectral bands
-│   │   │   └── oba_visualization.py      # Visualization of OBA-pipeline output
+│   │   │   ├── convert_to_geojson.py       # Converts dictionaries in specified format to GeoJSON
+│   │   │   ├── data_visualization.py       # Plots about input images and spectral bands
+│   │   │   ├── oba_visualization.py        # Visualization of OBA-pipeline output
+│   │   │   └── plot_class_distribution.py  # Plots class distribution on training set
 │   │   └── mask_generation        # Tools to create and manipulate segmentation masks
 │   │       ├── generate_masks.py         # Pipeline to generate masks from annotations
 │   │       ├── get_masks.py              # Helper functions to fetch or format masks
@@ -62,7 +64,6 @@ These methods were adapted and integrated into our preprocessing and training pi
 │   │   ├── data_utils.py                 # General-purpose data loading and manipulation
 │   │   ├── global_paths.py               # Centralized paths used across modules
 │   │   ├── inference_utils.py            # Inference functions and postprocessing steps
-│   │   ├── oba_augmentation.py           # Pipeline for applying full OBA logic
 │   │   └── train_utils.py                # Helper functions for training loops and metrics
 │   ├── augmentation.py           # Augmentation strategies applied to training data
 │   ├── config.py                 # Global configuration for the project (paths, hyperparams)

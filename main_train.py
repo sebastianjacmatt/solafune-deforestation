@@ -1,5 +1,8 @@
 import sys
 import os
+import torch
+
+# Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), ""))
 sys.path.append(os.path.join(project_root, "src"))
 
@@ -9,9 +12,6 @@ sys.path.append(os.path.join(src_root, "utils"))
 utils_root = os.path.abspath(os.path.join(src_root, "utils/"))
 sys.path.append(os.path.join(utils_root, "object_based_augmentation"))
 
-import torch
-torch.set_float32_matmul_precision("high")
-
 from train_utils import train_model, hyperparameter_tuning
 from global_paths import VAL_PRED_DIR, TEST_PRED_DIR, SUBMISSION_SAVE_PATH, DATASET_PATH
 from config import SCORE_THRESH, MIN_AREA, NUM_WORKERS_TEST, BATCH_SIZE_TEST
@@ -19,6 +19,9 @@ from dataset import TestDataset
 from torch.utils.data import DataLoader
 from inference_utils import run_inference
 from postprocess import PostProcess
+
+torch.cuda.empty_cache()
+torch.set_float32_matmul_precision("high")
 
 def main():
     # 0) Hyperparameter tuning for invariance constrained learning
