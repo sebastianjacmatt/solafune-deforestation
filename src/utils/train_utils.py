@@ -25,7 +25,7 @@ from config import (
     BACKGROUND_PROB, EXTRACT_FROM_SAME_IMAGE, OBA_PROB, NUM_OBA_OBJECTS
 )
 from src.utils.global_paths import (
-    DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH
+    DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
 )
 from model import Model
 
@@ -90,6 +90,22 @@ def get_augmentations_invariance():
     ])
 
 def prepare_dataloaders(augmentation):
+    """
+    Prepares and returns PyTorch DataLoaders for training and validation datasets.
+
+    This function creates dataset instances for training and validation using the
+    TrainValDataset class
+
+    Args:
+        augmentation (callable): A set of augmentations to apply to
+                                 the training dataset. Only getAugmentations or None should be used
+
+    Returns:
+        tuple: A tuple containing:
+            - train_loader (DataLoader): DataLoader for the training dataset.
+            - val_loader (DataLoader): DataLoader for the validation dataset.
+    """
+
     train_dataset = TrainValDataset(
         data_root=DATASET_PATH,
         sample_indices=train_indices,
@@ -207,11 +223,22 @@ def train_model(use_oba=False, use_icl=False):
 
 
 def prepare_dataloaders_oba(augmentation):
-    # Use the OBA dataset for training and the original for validation
+    """
+    Prepares PyTorch DataLoaders using the OBA dataset for training and the original dataset for validation.
+
+    Args:
+        augmentation (callable): A set of transformations/augmentations to apply to the training dataset.
+                                Only getAugmentations() or None should be called.
+    Returns:
+        tuple: A tuple containing:
+            - train_loader (DataLoader): DataLoader for the OBA-based training dataset.
+            - val_loader (DataLoader): DataLoader for the original validation dataset.
+    """
     train_dataset = OBAValDataset(
         data_root=DATASET_PATH,
         sample_indices=train_indices,
         annotations_path=TRAIN_ANNOTATIONS_PATH,
+        background_root=SEPARATE_BACKGROUND_IMAGES,
         background_prob=BACKGROUND_PROB,
         extract_from_same_image=EXTRACT_FROM_SAME_IMAGE,
         augmentations=augmentation,

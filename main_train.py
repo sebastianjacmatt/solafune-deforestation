@@ -25,10 +25,9 @@ def main():
     # Best Configuration:
     #'learning_rate': 0.001, 'batch_size': 32, 'gamma': 0.1, 'epsilon': 0.01, 'eta_p': 0.001, 'eta_d': 0.001
 
-    """
     print("Tuning began")
     hyperparameter_tuning()
-    """
+    
     # 1) Train
     model, train_loader, val_loader = train_model(use_oba=False, use_icl=True)
 
