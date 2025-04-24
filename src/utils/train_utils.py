@@ -86,7 +86,7 @@ def get_augmentations_invariance():
         A.RandomBrightnessContrast(p=1)
     ])
 
-def prepare_dataloaders(augmentation):
+def prepare_dataloaders(augmentation, use_ir=False):
     """
     Prepares and returns PyTorch DataLoaders for training and validation datasets.
 
@@ -106,7 +106,8 @@ def prepare_dataloaders(augmentation):
     train_dataset = TrainValDataset(
         data_root=DATASET_PATH,
         sample_indices=train_indices,
-        augmentations=augmentation
+        augmentations=augmentation,
+        use_ir=use_ir
     )
     val_dataset = TrainValDataset(
         data_root=DATASET_PATH,
@@ -174,7 +175,7 @@ def get_trainer():
     return trainer
 
 
-def train_model(use_oba=False, use_icl=False):
+def train_model(use_oba=False, use_icl=False, use_ir=False):
     """
     Runs the training loop for the model
     The function prepares the dataloader, initializes the model and trainer and runs a fit function.
@@ -185,6 +186,8 @@ def train_model(use_oba=False, use_icl=False):
                         object-based augmentations to the training samples.
         use_icl (bool): If True, trains the model using the invariance-constrained 
                         learning approach with a primal-dual optimization strategy.
+        use_ir (bool): If True, trains the model using Interpolation Robustness
+                         as a regularization method, works with or without OBA. 
     Returns:
         model (torch.nn.Module): The trained model.
         train_loader (torch.utils.data.DataLoader): DataLoader for the training dataset.
@@ -198,9 +201,15 @@ def train_model(use_oba=False, use_icl=False):
         train_loader, val_loader = prepare_dataloaders_oba(None)
     else:
         train_loader, val_loader = prepare_dataloaders(get_augmentations())
-
-
-    model = Model()
+    
+    if use_ir:
+        train_loader, val_loader = prepare_dataloaders(get_augmentations(), use_ir=True)
+        model = Model(use_ir=True)
+    elif use_ir & use_oba:
+        train_loader, val_loader = prepare_dataloaders_oba(get_augmentations(), use_ir=True)
+        model = Model(use_ir=True)
+    else: 
+        model = Model()
     trainer = get_trainer()
 
     if use_icl:
@@ -219,7 +228,7 @@ def train_model(use_oba=False, use_icl=False):
     return model, train_loader, val_loader
 
 
-def prepare_dataloaders_oba(augmentation):
+def prepare_dataloaders_oba(augmentation, use_ir=False):
     """
     Prepares PyTorch DataLoaders using the OBA dataset for training and the original dataset for validation.
 
@@ -242,7 +251,8 @@ def prepare_dataloaders_oba(augmentation):
         use_oba=True,
         oba_prob=OBA_PROB,
         visualize=False,
-        num_oba_objects=NUM_OBA_OBJECTS
+        num_oba_objects=NUM_OBA_OBJECTS,
+        use_ir=use_ir
     )
 
     val_dataset = TrainValDataset(
