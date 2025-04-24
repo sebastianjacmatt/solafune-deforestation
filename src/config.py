@@ -8,7 +8,7 @@ ETA_D = 0.001
 ETA_P = 0.001
 GAMMA=0.1
 N_MH_STEPS=2
-M_SAMPLES=5
+M_SAMPLES=1
 
 # threshold / area for post-processing
 SCORE_THRESH = 0.5

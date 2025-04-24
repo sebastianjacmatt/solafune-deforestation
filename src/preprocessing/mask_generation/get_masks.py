@@ -27,6 +27,10 @@ mask_save_dir = DATASET_PATH / "train_masks"
 mask_save_dir.mkdir(parents=True, exist_ok=True)
 
 def get_and_save_masks():
+    """
+    Loads polygon annotations from a JSON file, creates binary masks per class for each image,
+    and saves the masks as .npy files to disk.
+    """
     with open(DATASET_PATH / "train_annotations.json", "r") as f:
         raw_annotations = json.load(f)
 

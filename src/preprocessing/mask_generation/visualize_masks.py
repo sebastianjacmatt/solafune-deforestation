@@ -22,6 +22,10 @@ vis_save_dir.mkdir(parents=True, exist_ok=True)
 
 
 def visualize_masks():
+    """
+    Loads masks and corresponding RGB satellite images, creates a side-by-side visualization
+    showing each class mask overlayed with color and label, and saves it as a PNG file.
+    """
     for fn in tqdm(train_file_names):
         mask = np.load(mask_save_dir / fn.replace(".tif", ".npy"))  # (4, 1024, 1024)
         vis_masks = [np.zeros((1024, 1024, 3), dtype=np.uint8) for _ in range(4)]  # 4: (glassland_shrubland, logging, mining, plantation)
