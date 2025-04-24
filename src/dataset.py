@@ -5,6 +5,7 @@ from pathlib import Path
 import random
 from torch.utils.data import Dataset
 import numpy as np
+from utils.data_utils import domain_image_split
 
 # Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), "../../.."))
@@ -23,7 +24,7 @@ from object_augmentation import augment_object
 
 
 class TrainValDataset(Dataset):
-    def __init__(self, data_root, sample_indices, augmentations=None):
+    def __init__(self, data_root, sample_indices, augmentations=None, use_ir=False):
         """
         data_root: Path to dataset
         sample_indices: Which train_X.* files to use
@@ -36,6 +37,7 @@ class TrainValDataset(Dataset):
             data_root / "train_masks" / f"train_{i}.npy" for i in sample_indices
         ]
         self.augmentations = augmentations
+        self.use_ir = use_ir
 
     def __len__(self):
         return len(self.image_paths)
@@ -57,13 +59,24 @@ class TrainValDataset(Dataset):
         # Normalize the image
         sample["image"] = normalize_image(sample["image"])
 
-        return {
+        sample = {
             "image": sample["image"],
             "mask": sample["mask"],
             "image_path": str(self.image_paths[idx]),
             "mask_path": str(self.mask_paths[idx]),
         }
-
+    
+        # If using IR, split the image into different domains
+        if self.use_ir:
+            domain_samples = domain_image_split(image, mask, channels={[1,2,3],[4,5,6]})
+            # split bands into seperate samples of 12-band padded images            
+            sample = {
+                "domains": domain_samples,
+                "image_path" : str(self.image_paths[idx]),
+                "mask_path" : str(self.mask_paths[idx])
+            }
+        
+        return sample
 
 class TestDataset(Dataset):
     def __init__(self, data_root):
@@ -102,7 +115,8 @@ class OBAValDataset(Dataset):
         use_oba=True,
         oba_prob=0.5,
         visualize=False,
-        num_oba_objects=1
+        num_oba_objects=1,
+        use_ir=False,
     ):
         """
         Create a dataset that optionally applies Object-Based Augmentation (OBA) 
@@ -159,6 +173,7 @@ class OBAValDataset(Dataset):
         self.num_oba_objects = num_oba_objects
         self.extract_from_same_image = extract_from_same_image
         self.background_prob = background_prob
+        self.use_ir = use_ir
 
         # Load annotations from the JSON file
         with open(annotations_path, 'r') as f:
@@ -282,4 +297,14 @@ class OBAValDataset(Dataset):
             "image_path": str(self.image_paths[idx])
         }
         sample.update(sample_extra)
+
+        # If using IR, split the image into different domains
+        if self.use_ir:
+            domain_samples = domain_image_split(image, mask, channels={[1,2,3],[4,5,6]}) 
+            sample = {
+                "domains": domain_samples,
+                "image_path" : str(self.image_paths[idx]),
+                "mask_path" : str(self.mask_paths[idx])
+            }
+
         return sample
