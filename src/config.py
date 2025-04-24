@@ -47,7 +47,7 @@ else:
     EPOCHS = 100
 
     # Batch sizes
-    BATCH_SIZE_TRAIN = 2
+    BATCH_SIZE_TRAIN = 4
     BATCH_SIZE_VAL = 2
     BATCH_SIZE_TEST = 2
 

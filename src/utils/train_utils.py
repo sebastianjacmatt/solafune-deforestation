@@ -379,7 +379,6 @@ def hyperparameter_tuning():
     """
     # Define hyperparameter search space
     learning_rates = [1e-3]
-    batch_sizes = [16, 32]
     gamma_values = [0.1, 0.5]
     epsilon_values = [0.01, 0.05]
     eta_p_values = [0.001, 0.01]
@@ -392,17 +391,16 @@ def hyperparameter_tuning():
 
     # Iterate over all combinations of hyperparameters
     for lr, batch_size, gamma, epsilon, eta_p, eta_d, n_mh in product(
-        learning_rates, batch_sizes, gamma_values, epsilon_values, eta_p_values, eta_d_values, n_mh_steps
+        learning_rates, gamma_values, epsilon_values, eta_p_values, eta_d_values, n_mh_steps
     ):
-        print(f"Testing configuration: lr={lr}, batch_size={batch_size}, gamma={gamma}, epsilon={epsilon}, eta_p={eta_p}, eta_d={eta_d}, n_mh={n_mh}")
+        print(f"Testing configuration: lr={lr}, gamma={gamma}, epsilon={epsilon}, eta_p={eta_p}, eta_d={eta_d}, n_mh={n_mh}")
 
         # Update global hyperparameters
-        global GAMMA, EPSILON, ETA_P, ETA_D, BATCH_SIZE_TRAIN
+        global GAMMA, EPSILON, ETA_P, ETA_D
         GAMMA = gamma
         EPSILON = epsilon
         ETA_P = eta_p
         ETA_D = eta_d
-        BATCH_SIZE_TRAIN = batch_size
         N_MH_STEPS = n_mh
 
         # Prepare data loaders with the current batch size
@@ -436,7 +434,6 @@ def hyperparameter_tuning():
             best_val_loss = val_loss
             best_config = {
                 "learning_rate": lr,
-                "batch_size": batch_size,
                 "gamma": gamma,
                 "epsilon": epsilon,
                 "eta_p": eta_p,
