@@ -387,7 +387,7 @@ def hyperparameter_tuning():
     best_val_loss = float("inf")
 
     # Iterate over all combinations of hyperparameters
-    for lr, batch_size, gamma, epsilon, eta_p, eta_d, n_mh in product(
+    for lr, gamma, epsilon, eta_p, eta_d, n_mh in product(
         learning_rates, gamma_values, epsilon_values, eta_p_values, eta_d_values, n_mh_steps
     ):
         print(f"Testing configuration: lr={lr}, gamma={gamma}, epsilon={epsilon}, eta_p={eta_p}, eta_d={eta_d}, n_mh={n_mh}")
@@ -400,7 +400,7 @@ def hyperparameter_tuning():
         ETA_D = eta_d
         N_MH_STEPS = n_mh
 
-        # Prepare data loaders with the current batch size
+        # Prepare data loaders
         train_loader, val_loader = prepare_dataloaders()
 
         # Initialize model, optimizer, and scheduler
