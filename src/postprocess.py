@@ -7,6 +7,7 @@ from tqdm import tqdm
 from shapely.geometry import shape
 from skimage import measure
 from rasterio import features
+import subprocess
 
 # Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
@@ -46,6 +47,25 @@ class PostProcess:
                     f.write("\n")
 
             f.write("]}\n")  # Close the JSON object
+        self.format_json_python_tool(save_path, save_path)
+
+    def format_json_python_tool(self, input_path, output_path):
+        """
+        Formats the JSON file using the python json.tool module.
+        """
+        tmp_path = f"{output_path}.tmp"
+
+        result = subprocess.run([
+            "python", "-m", "json.tool", input_path, tmp_path
+        ])
+
+        if result.returncode == 0:
+            os.replace(tmp_path, output_path)  # atomic replace
+        else:
+            print("Formatting failed. Original file kept.")
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
 
     def stream_image_entries(self, pred_paths):
         """
@@ -55,7 +75,7 @@ class PostProcess:
             mask = np.load(pred, mmap_mode='r') # only read, saves memory
             image_segments = self.generate_segment_polygons(mask)
             annotations = self.build_annotations(image_segments)
-            pred_name = pred.name.replace(".npy", ".tif")
+            pred_name = pred.name.replace("train_", "evaluation_").replace(".npy", ".tif")
             yield {
                 "file_name": pred_name,
                 "annotations": annotations
