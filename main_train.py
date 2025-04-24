@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 from inference_utils import run_inference
 from postprocess import PostProcess
 
+torch.cuda.empty_cache()
 torch.set_float32_matmul_precision("high")
 
 def main():
