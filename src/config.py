@@ -23,7 +23,7 @@ NUM_OBA_OBJECTS = 5 # Number of new augmented objects to try to paste onto image
 MAX_EXTRACT_TRIES = 5 # Number of exctracting object tries before moving on to next object
 
 
-TESTING = True # set to False for training
+TESTING = False # set to False for training
 
 if TESTING:
     EPOCHS = 2
@@ -47,9 +47,9 @@ else:
     EPOCHS = 100
 
     # Batch sizes
-    BATCH_SIZE_TRAIN = 4
-    BATCH_SIZE_VAL = 4
-    BATCH_SIZE_TEST = 4
+    BATCH_SIZE_TRAIN = 2
+    BATCH_SIZE_VAL = 2
+    BATCH_SIZE_TEST = 2
 
     # Number of workers
     NUM_WORKERS_TRAIN = 4

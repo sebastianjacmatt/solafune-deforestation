@@ -10,7 +10,6 @@ EVAL_IMAGES_PATH = DATASET_PATH / "evaluation_images"
 TRAIN_ANNOTATIONS_PATH = DATASET_PATH / "train_annotations.json"
 SEPARATE_BACKGROUND_IMAGES = DATASET_PATH / "background_images"
 
-
 # Define other paths
 
 # Ensure directories exist where needed

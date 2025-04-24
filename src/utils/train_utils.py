@@ -7,6 +7,8 @@ from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, TQDMProgressBar
 from pytorch_lightning.loggers import TensorBoardLogger
 import torch
+import segmentation_models_pytorch as smp
+
 from torch.utils.data import DataLoader
 from dataset import TrainValDataset, OBAValDataset
 
@@ -31,6 +33,17 @@ train_indices, val_indices = train_test_split(
 )
 
 def get_augmentations():
+    """
+    get function for retrieving the set of augmentations to be applied to the training data.
+    
+    These augmentations include transformations such as shifting, scaling, rotating, 
+    cropping, flipping, and brightness/contrast adjustments. If the Object-Based 
+    Augmentation (OBA) implementation is enabled, these augmentations will be applied 
+    on top of the OBA-generated augmentations.
+
+    Returns:
+        albumentations.Compose
+    """
     return A.Compose([
         A.ShiftScaleRotate(
             p=0.5,
@@ -48,11 +61,52 @@ def get_augmentations():
         A.RandomBrightnessContrast(p=0.2)
     ])
 
-def prepare_dataloaders():
+def get_augmentations_invariance():
+    """
+    get function for retrieving the set of augmentations to be applied to the training data.
+    Only used with invarianced constrained learning. The augmentations are equal to get_augmentations, with p=1 for all.
+
+    Returns:
+        albumentations.Compose
+    """
+    return A.Compose([
+        A.ShiftScaleRotate(
+            p=1,
+            shift_limit=0.0625,
+            scale_limit=0.1,
+            rotate_limit=15,
+            border_mode=0,
+            interpolation=2,
+        ),
+        A.RandomCrop(p=1, width=512, height=512),
+        A.HorizontalFlip(p=1),
+        A.VerticalFlip(p=1),
+        A.Transpose(p=1),
+        A.RandomRotate90(p=1),
+        A.RandomBrightnessContrast(p=1)
+    ])
+
+def prepare_dataloaders(augmentation):
+    """
+    Prepares and returns PyTorch DataLoaders for training and validation datasets.
+
+    This function creates dataset instances for training and validation using the
+    TrainValDataset class
+
+    Args:
+        augmentation (callable): A set of augmentations to apply to
+                                 the training dataset. Only getAugmentations or None should be used
+
+    Returns:
+        tuple: A tuple containing:
+            - train_loader (DataLoader): DataLoader for the training dataset.
+            - val_loader (DataLoader): DataLoader for the validation dataset.
+    """
+
     train_dataset = TrainValDataset(
         data_root=DATASET_PATH,
         sample_indices=train_indices,
-        augmentations=get_augmentations()
+        augmentations=augmentation
     )
     val_dataset = TrainValDataset(
         data_root=DATASET_PATH,
@@ -79,6 +133,15 @@ def prepare_dataloaders():
     return train_loader, val_loader
 
 def get_trainer():
+    """
+    Configures and returns a PyTorch Trainer.
+
+    Includes Checkpoint, learning rate monitor,
+    progress bar and tensor board logger.
+
+    Returns:
+        pytorch_lightning.Trainer: A configured Trainer primed for training.
+    """
     seed_everything(SEED)
 
     checkpoint_callback = ModelCheckpoint(
@@ -112,10 +175,30 @@ def get_trainer():
 
 
 def train_model(use_oba=False, use_icl=False):
+    """
+    Runs the training loop for the model
+    The function prepares the dataloader, initializes the model and trainer and runs a fit function.
+    Contains flags for oba and invariance-constrained learning implementations.
+
+    Args:
+        use_oba (bool): If True, uses the OBA dataset for training and applies 
+                        object-based augmentations to the training samples.
+        use_icl (bool): If True, trains the model using the invariance-constrained 
+                        learning approach with a primal-dual optimization strategy.
+    Returns:
+        model (torch.nn.Module): The trained model.
+        train_loader (torch.utils.data.DataLoader): DataLoader for the training dataset.
+        val_loader (torch.utils.data.DataLoader): DataLoader for the validation dataset.
+    """
     if use_oba:
-        train_loader, val_loader = prepare_dataloaders_oba()
+        train_loader, val_loader = prepare_dataloaders_oba(get_augmentations())
+    elif use_icl:
+        train_loader, val_loader = prepare_dataloaders(None)
+    elif use_oba & use_icl:
+        train_loader, val_loader = prepare_dataloaders_oba(None)
     else:
-        train_loader, val_loader = prepare_dataloaders()
+        train_loader, val_loader = prepare_dataloaders(get_augmentations())
+
 
     model = Model()
     trainer = get_trainer()
@@ -136,8 +219,18 @@ def train_model(use_oba=False, use_icl=False):
     return model, train_loader, val_loader
 
 
-def prepare_dataloaders_oba():
-    # Use the OBA dataset for training and the original for validation
+def prepare_dataloaders_oba(augmentation):
+    """
+    Prepares PyTorch DataLoaders using the OBA dataset for training and the original dataset for validation.
+
+    Args:
+        augmentation (callable): A set of transformations/augmentations to apply to the training dataset.
+                                Only getAugmentations() or None should be called.
+    Returns:
+        tuple: A tuple containing:
+            - train_loader (DataLoader): DataLoader for the OBA-based training dataset.
+            - val_loader (DataLoader): DataLoader for the original validation dataset.
+    """
     train_dataset = OBAValDataset(
         data_root=DATASET_PATH,
         sample_indices=train_indices,
@@ -145,7 +238,7 @@ def prepare_dataloaders_oba():
         background_root=SEPARATE_BACKGROUND_IMAGES,
         background_prob=BACKGROUND_PROB,
         extract_from_same_image=EXTRACT_FROM_SAME_IMAGE,
-        augmentations=get_augmentations(),
+        augmentations=augmentation,
         use_oba=True,
         oba_prob=OBA_PROB,
         visualize=False,
@@ -203,6 +296,7 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
         print(f"\nEpoch {epoch + 1}/{num_epochs}")
         model.train()
         train_loss = 0.0
+        train_tp, train_fp, train_fn, train_tn = 0, 0, 0, 0
 
         for batch in tqdm(train_loader, desc="Training"):
 
@@ -215,17 +309,34 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
 
             # Perform one update step using primal-dual
             batch_loss, gamma = primal_dual_augmentation(
-                model, data_batch, get_augmentations(), optimizer, gamma, EPSILON,
+                model, data_batch, get_augmentations_invariance(), optimizer, gamma, EPSILON,
                 ETA_P, ETA_D, n_mh_steps=N_MH_STEPS, m_samples=M_SAMPLES, device=device
             )
             train_loss += batch_loss 
 
+            logits = model(images)
+            prob_mask = logits.sigmoid()
+            threshold = 0.5
+            tp, fp, fn, tn = smp.metrics.get_stats(
+                (prob_mask > threshold).long(),
+                masks.long(),
+                mode=smp.losses.MULTILABEL_MODE,
+            )
+            train_tp += tp.sum().item()
+            train_fp += fp.sum().item()
+            train_fn += fn.sum().item()
+            train_tn += tn.sum().item()
+
         train_loss /= len(train_loader)
-        print(f"Training Loss: {train_loss:.4f}")
+        train_f1 = smp.metrics.f1_score(
+            torch.tensor(train_tp), torch.tensor(train_fp), torch.tensor(train_fn), torch.tensor(train_tn)
+        )
+        print(f"Training Loss: {train_loss:.4f}, Training F1: {train_f1:.4f}")
 
         # Validation loop
         model.eval()
         val_loss = 0.0
+        val_tp, val_fp, val_fn, val_tn = 0, 0, 0, 0
         with torch.no_grad():
             for batch in tqdm(val_loader, desc="Validation"):
                 images = batch["image"].to(device)
@@ -234,8 +345,22 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
                 loss = model.dice_loss_fn(logits, masks) + model.bce_loss_fn(logits, masks)
                 val_loss += loss.item()
 
+                prob_mask = logits.sigmoid()
+                tp, fp, fn, tn = smp.metrics.get_stats(
+                    (prob_mask > threshold).long(),
+                    masks.long(),
+                    mode=smp.losses.MULTILABEL_MODE,
+                )
+                val_tp += tp.sum().item()
+                val_fp += fp.sum().item()
+                val_fn += fn.sum().item()
+                val_tn += tn.sum().item()
+
         val_loss /= len(val_loader)
-        print(f"Validation Loss: {val_loss:.4f}")
+        val_f1 = smp.metrics.f1_score(
+            torch.tensor(val_tp), torch.tensor(val_fp), torch.tensor(val_fn), torch.tensor(val_tn)
+        )
+        print(f"Validation Loss: {val_loss:.4f}, Validation F1: {val_f1:.4f}")
 
         if scheduler:
             scheduler.step(epoch)
@@ -247,6 +372,7 @@ from itertools import product
 def hyperparameter_tuning():
     """
     Perform hyperparameter tuning for invariance_constrained_fit.
+    Updates the relevant values from config.py globally
     """
     # Define hyperparameter search space
     learning_rates = [1e-3]

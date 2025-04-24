@@ -18,6 +18,9 @@ sys.path.append(os.path.join(src_root, "utils"))
 from config import CLASS_NAMES
 
 class PostProcess:
+    """
+    Handles post-processing of prediction masks to generate polygon annotations for submission.
+    """
     def __init__(self, pred_dir, score_thresh, min_area, save_path):
         self.pred_dir = pred_dir
         self.score_thresh = score_thresh
@@ -25,6 +28,9 @@ class PostProcess:
         self.save_path = save_path
 
     def generate_submission(self, save_path=None):
+        """
+        Generates a JSON submission file with polygon annotations.
+        """
         if save_path is None:
             save_path = self.save_path
         pred_paths = sorted(self.pred_dir.glob("*.npy"))
@@ -42,6 +48,9 @@ class PostProcess:
             f.write("]}\n")  # Close the JSON object
 
     def stream_image_entries(self, pred_paths):
+        """
+        Streams JSON entries for each prediction file.
+        """
         for pred in tqdm(pred_paths, desc="Detect Polygons", total=len(pred_paths)):
             mask = np.load(pred, mmap_mode='r') # only read, saves memory
             image_segments = self.generate_segment_polygons(mask)
@@ -53,6 +62,14 @@ class PostProcess:
             }
 
     def build_annotations(self, image_segments):
+        """
+        Converts polygons into formatted annotation dictionaries.
+        Args:
+            image_segments (dict): A dictionary where keys are class names and values are lists
+        Returns:
+            list: A list of annotation dictionaries, each containing the class name and 
+                  a flattened list of polygon coordinates.
+        """
         annotations = []
         for class_name in CLASS_NAMES:
             for poly in image_segments.get(class_name, []):

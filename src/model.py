@@ -13,6 +13,9 @@ sys.path.append(os.path.join(project_root, "src"))
 from config import EPOCHS, CLASS_NAMES
 
 class Model(pl.LightningModule):
+    """
+    PyTorch Lightning module for multi-label image segmentation using a U-Net architecture.
+    """
     def __init__(self):
         super().__init__()
         self.save_hyperparameters()
@@ -25,12 +28,6 @@ class Model(pl.LightningModule):
             in_channels=12,
             classes=4,
         )
-
-        # freeze pre-trained encoder weights
-        """
-        for param in self.model.encoder.parameters():
-            param.requires_grad = False
-        """
 
         # define loss functions
         self.dice_loss_fn = smp.losses.DiceLoss(
@@ -45,6 +42,16 @@ class Model(pl.LightningModule):
         return self.model(x)  # logits
 
     def shared_step(self, batch, stage):
+        """
+        Shared logic for training and validation steps.
+
+        Args:
+            batch (dict): A dictionary with "image" and "mask" tensors.
+            stage (str): Either "train" or "val".
+
+        Returns:
+            torch.Tensor: Combined loss for the batch.
+        """
         image = batch["image"]
         mask = batch["mask"]
 
@@ -78,12 +85,25 @@ class Model(pl.LightningModule):
         return loss
 
     def training_step(self, batch, batch_idx):
+        """
+        Training step wrapper.
+        """
         return self.shared_step(batch, "train")
 
     def validation_step(self, batch, batch_idx):
+        """
+        Validation step wrapper.
+        """
         return self.shared_step(batch, "val")
 
     def shared_epoch_end(self, outputs, stage):
+        """
+        Aggregates and logs metrics at the end of an epoch.
+
+        Args:
+            outputs (list): List of dictionaries containing loss and confusion matrix stats.
+            stage (str): Either "train" or "val".
+        """
         def log(name, tensor, prog_bar=False):
             # Log a scalar metric
             self.log(f"{stage}/{name}", tensor.to(self.device), sync_dist=True, prog_bar=prog_bar)
@@ -109,14 +129,23 @@ class Model(pl.LightningModule):
         log("f1", f1_avg, prog_bar=True)
 
     def on_train_epoch_end(self):
+        """
+        Handles logging and cleanup at the end of the training epoch.
+        """
         self.shared_epoch_end(self.training_step_outputs, "train")
         self.training_step_outputs.clear()
 
     def on_validation_epoch_end(self):
+        """
+        Handles logging and cleanup at the end of the validation epoch.
+        """
         self.shared_epoch_end(self.validation_step_outputs, "val")
         self.validation_step_outputs.clear()
 
     def configure_optimizers(self):
+        """
+        Configures optimizer and learning rate scheduler.
+        """
         optimizer = create_optimizer_v2(
             self.parameters(),
             opt="adamw",
@@ -143,5 +172,7 @@ class Model(pl.LightningModule):
         }
 
     def lr_scheduler_step(self, scheduler, metric):
-        # Timm's scheduler needs the current epoch
+        """
+        Steps the learning rate scheduler.
+        """
         scheduler.step(epoch=self.current_epoch)
