@@ -1,13 +1,12 @@
 import sys
 import os
-project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
-sys.path.append(os.path.join(project_root, "src"))
-
-import os
 import numpy as np
 import torch
 from tqdm import tqdm
 from pathlib import Path
+
+project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+sys.path.append(os.path.join(project_root, "src"))
 
 def run_inference(model, loader, pred_output_dir):
     """

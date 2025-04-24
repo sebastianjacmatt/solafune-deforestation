@@ -1,11 +1,5 @@
 import sys
 import os
-project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
-sys.path.append(os.path.join(project_root, "src"))
-
-src_root = os.path.abspath(os.path.join(project_root, "src/"))
-sys.path.append(os.path.join(src_root, "utils"))
-
 import numpy as np
 import json
 import os
@@ -13,6 +7,13 @@ from tqdm import tqdm
 from shapely.geometry import shape
 from skimage import measure
 from rasterio import features
+
+# Append project paths
+project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+sys.path.append(os.path.join(project_root, "src"))
+
+src_root = os.path.abspath(os.path.join(project_root, "src/"))
+sys.path.append(os.path.join(src_root, "utils"))
 
 from config import CLASS_NAMES
 

@@ -1,11 +1,11 @@
+import sys
+import os
 import cv2
 import numpy as np
 import tifffile
 from tqdm import tqdm
 
-import sys
-import os
-
+# Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), "../../../"))
 sys.path.append(os.path.join(project_root, "src"))
 
@@ -15,11 +15,9 @@ sys.path.append(os.path.join(src_root, "utils"))
 from global_paths import DATASET_PATH, VISUALIZATIONS_PATH
 from get_masks import train_file_names, class_names, mask_save_dir
 
-
 # Visualize masks and save as a png file along with the RGB image
 vis_save_dir = VISUALIZATIONS_PATH / "vis_train"
 vis_save_dir.mkdir(parents=True, exist_ok=True)
-
 
 def visualize_masks():
     """

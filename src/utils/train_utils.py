@@ -1,12 +1,6 @@
 import sys
 import os
-
 from tqdm import tqdm
-
-from invariance_constrained import primal_dual_augmentation
-project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
-sys.path.append(os.path.join(project_root, "src"))
-
 import albumentations as A
 from sklearn.model_selection import train_test_split
 from pytorch_lightning import Trainer, seed_everything
@@ -16,8 +10,8 @@ import torch
 import segmentation_models_pytorch as smp
 
 from torch.utils.data import DataLoader
-
 from dataset import TrainValDataset, OBAValDataset
+
 from config import (
     EPSILON, ETA_D, ETA_P, GAMMA, M_SAMPLES, N_MH_STEPS, SEED, EPOCHS,
     BATCH_SIZE_TRAIN, BATCH_SIZE_VAL, NUM_SAMPLE_INDICIES,
@@ -28,7 +22,10 @@ from src.utils.global_paths import (
     DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
 )
 from model import Model
+from invariance_constrained import primal_dual_augmentation
 
+project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
+sys.path.append(os.path.join(project_root, "src"))
 
 sample_indices = list(range(NUM_SAMPLE_INDICIES))
 train_indices, val_indices = train_test_split(
