@@ -44,7 +44,7 @@ if TESTING:
     NUM_SAMPLE_INDICIES = 2 # Number of sample indicies (train / val), default: 176, else less for testing
     NUM_EVAL_INDICIES = 2   # Number of eval indicie, default: 118, else less for testing
 else:
-    EPOCHS = 100
+    EPOCHS = 20
 
     # Batch sizes
     BATCH_SIZE_TRAIN = 2
