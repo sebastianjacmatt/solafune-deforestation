@@ -3,10 +3,10 @@ SEED = 42
 CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
 
 #VARIABLES FOR INVARIANCE_CONSTRAINED LEARNING
-EPSILON = 0.01
-ETA_D = 0.001
-ETA_P = 0.001
-GAMMA=0.1
+EPSILON = 0.05
+ETA_D = 0.01
+ETA_P = 0.01
+GAMMA=0.5
 N_MH_STEPS=2
 M_SAMPLES=1
 
@@ -47,7 +47,7 @@ else:
     EPOCHS = 100
 
     # Batch sizes
-    BATCH_SIZE_TRAIN = 4
+    BATCH_SIZE_TRAIN = 2
     BATCH_SIZE_VAL = 2
     BATCH_SIZE_TEST = 2
 

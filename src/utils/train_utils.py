@@ -78,13 +78,17 @@ def get_augmentations_invariance():
             border_mode=0,
             interpolation=2,
         ),
-        A.RandomCrop(p=1, width=512, height=512),
         A.HorizontalFlip(p=1),
         A.VerticalFlip(p=1),
         A.Transpose(p=1),
         A.RandomRotate90(p=1),
         A.RandomBrightnessContrast(p=1)
     ])
+
+def random_crop_icl():
+        return A.Compose([
+            A.RandomCrop(p=1, width=512, height=512)
+               ])
 
 def prepare_dataloaders(augmentation):
     """
@@ -193,9 +197,9 @@ def train_model(use_oba=False, use_icl=False):
     if use_oba:
         train_loader, val_loader = prepare_dataloaders_oba(get_augmentations())
     elif use_icl:
-        train_loader, val_loader = prepare_dataloaders(None)
+        train_loader, val_loader = prepare_dataloaders(random_crop_icl())
     elif use_oba & use_icl:
-        train_loader, val_loader = prepare_dataloaders_oba(None)
+        train_loader, val_loader = prepare_dataloaders_oba(random_crop_icl())
     else:
         train_loader, val_loader = prepare_dataloaders(get_augmentations())
 
@@ -225,7 +229,7 @@ def prepare_dataloaders_oba(augmentation):
 
     Args:
         augmentation (callable): A set of transformations/augmentations to apply to the training dataset.
-                                Only getAugmentations() or None should be called.
+                                Only getAugmentations() or icl_resize() should be called.
     Returns:
         tuple: A tuple containing:
             - train_loader (DataLoader): DataLoader for the OBA-based training dataset.
@@ -401,7 +405,7 @@ def hyperparameter_tuning():
         N_MH_STEPS = n_mh
 
         # Prepare data loaders
-        train_loader, val_loader = prepare_dataloaders()
+        train_loader, val_loader = prepare_dataloaders(random_crop_icl())
 
         # Initialize model, optimizer, and scheduler
         model = Model()
@@ -410,7 +414,7 @@ def hyperparameter_tuning():
 
         # Train the model
         trained_model = invariance_constrained_fit(
-            model, train_loader, val_loader, optimizer, scheduler, num_epochs=5, device="cuda"
+            model, train_loader, val_loader, optimizer, scheduler, num_epochs=3, device="cuda"
         )
 
         # Evaluate validation loss
