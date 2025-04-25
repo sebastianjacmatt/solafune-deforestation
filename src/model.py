@@ -11,7 +11,7 @@ from timm.scheduler import create_scheduler_v2
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(os.path.join(project_root, "src"))
 
-from config import EPOCHS, CLASS_NAMES, IR_LAMBDA, T_PSI
+from config import EPOCHS, CLASS_NAMES, IR_LAMBDA, T_PSI, W
 
 class Model(pl.LightningModule):
     """
@@ -42,11 +42,7 @@ class Model(pl.LightningModule):
         self.encoder = self.model.encoder #TODO: naive way of getting encoder
         self.decoder = self.model.decoder #TODO: naive way of getting decoder
         self.segmentation_head = self.model.segmentation_head #TODO: naive way of getting segmentation head
-        self.T_psi = torch.nn.Sequential(  # this is T_ψ #TODO naive way of defining T_psi
-            torch.nn.Conv2d(320, 320, kernel_size=3, padding=1),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(320, 320, kernel_size=3, padding=1),
-        )
+        self.T_psi = T_PSI
 
         self.use_ir = use_ir
 
@@ -118,26 +114,37 @@ class Model(pl.LightningModule):
         base_output_d1 = self.IoU_out(base_loss_d1, logits_mask_d1, mask_d1)
 
         base_loss_d2 = self.dice_loss_fn(logits_mask_d2, mask_d2) + self.bce_loss_fn(logits_mask_d2, mask_d2)
-        base_output_d2 = self.IoU_out(base_loss_d2, logits_mask_d1, mask_d2)
-        
+        base_output_d2 = self.IoU_out(base_loss_d2, logits_mask_d2, mask_d2)
+    
         # Combine outputs and loss
         combined_output = {
             "loss": (base_output_d1["loss"] + base_output_d2["loss"]) / 2,
-            "tp": (base_output_d1["tp"] + base_output_d2["tp"]) // 2,
-            "fp": (base_output_d1["fp"] + base_output_d2["fp"]) // 2,
-            "fn": (base_output_d1["fn"] + base_output_d2["fn"]) // 2,
-            "tn": (base_output_d1["tn"] + base_output_d2["tn"]) // 2,
+            "tp": (base_output_d1["tp"] + base_output_d2["tp"]) / 2,
+            "fp": (base_output_d1["fp"] + base_output_d2["fp"]) / 2,
+            "fn": (base_output_d1["fn"] + base_output_d2["fn"]) / 2,
+            "tn": (base_output_d1["tn"] + base_output_d2["tn"]) / 2,
         }
         combined_loss = (base_loss_d1 + base_loss_d2) / 2
 
-        loss_int = self.int_loss(
+        loss_int_d1 = self.int_loss(
             batch["domains"][0]["image"],
             batch["domains"][1]["image"],
             batch["domains"][0]["mask"], #TODO: use two masks instead of one and interpolate between them
             ir_lambda=IR_LAMBDA,
             w=0.5, # interpolate in the middle the images
             )
-            
+
+        loss_int_d2 = self.int_loss(
+            batch["domains"][1]["image"],
+            batch["domains"][0]["image"],
+            batch["domains"][1]["mask"], #TODO: use two masks instead of one and interpolate between them
+            ir_lambda=IR_LAMBDA,
+            w=W, # interpolate in the middle the images
+            )
+        
+        # combine the interpolation losses
+        loss_int = (loss_int_d1 + loss_int_d2) / 2
+
         self.training_step_outputs.append(combined_output)
         
         # interpolation loss added as regularization parameter
