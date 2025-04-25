@@ -116,10 +116,16 @@ class PostProcess:
         polygons_all_classes = {}
         for i, class_name in enumerate(CLASS_NAMES):
             mask_for_a_class = mask[i]
-            if mask_for_a_class.astype(np.int64).sum() < self.min_area:
+            
+            # Threshold the prediction into binary
+            mask_for_a_class = (mask_for_a_class > self.score_thresh).astype(np.uint8)
+
+            # Area filter AFTER threshold
+            if mask_for_a_class.sum() < self.min_area:
                 mask_for_a_class = np.zeros_like(mask_for_a_class)
 
-            label = measure.label(mask_for_a_class, connectivity=2, background=0).astype(np.uint8)
+            # Extract polygons
+            label = measure.label(mask_for_a_class, connectivity=2, background=0)
             polygons = []
             for p, value in features.shapes(label, label):
                 p = shape(p)
