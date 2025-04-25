@@ -1,8 +1,24 @@
-SEED = 42
+## General configurations
 
+SEED = 42
 CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
 
-#VARIABLES FOR INVARIANCE_CONSTRAINED LEARNING
+# Optimizer
+OPTIMIZER = "adamw"
+LEARNING_RATE_OPT = 1e-4
+WEIGHT_DECAY = 1e-2
+
+# Scheduler
+SCHEDULER = "cosine"
+MIN_LEARNING_RATE = 0.0
+WARMUP_LEARNING_RATE = 1e-5
+
+# Threshold / area for post-processing
+SCORE_THRESH = 0.5
+MIN_AREA = 20000
+
+
+# Invariance Constrained Learning configuartions
 EPSILON = 0.05
 ETA_D = 0.01
 ETA_P = 0.01
@@ -10,20 +26,18 @@ GAMMA=0.5
 N_MH_STEPS=2
 M_SAMPLES=1
 
-# threshold / area for post-processing
-SCORE_THRESH = 0.5
-MIN_AREA = 20000
 
-# OBA config
-BACKGROUND_PROB = 0.3 # Probability of using a background from a separate dataset
-EXTRACT_FROM_SAME_IMAGE = False # Set to True to only extract objects from and paste onto same image
+# Object-Based Augmentation configuartions
+BACKGROUND_PROB = 0.3            # Probability of using a background from a separate dataset
+EXTRACT_FROM_SAME_IMAGE = False  # Set to True to only extract objects from and paste onto same image
 # ^ (currently only 1 background in folder, functionality is implemented, but dataset is not gathered)
-OBA_PROB = 0.5 # Probability of using OBA on a sample during training process
-NUM_OBA_OBJECTS = 5 # Number of new augmented objects to try to paste onto image
-MAX_EXTRACT_TRIES = 5 # Number of exctracting object tries before moving on to next object
+OBA_PROB = 0.5                   # Probability of using OBA on a sample during training process
+NUM_OBA_OBJECTS = 5              # Number of new augmented objects to try to paste onto image
+MAX_EXTRACT_TRIES = 5            # Number of exctracting object tries before moving on to next object
 
 
-TESTING = False # set to False for training
+
+TESTING = True # set to False for training
 
 if TESTING:
     EPOCHS = 2
@@ -44,12 +58,12 @@ if TESTING:
     NUM_SAMPLE_INDICIES = 2 # Number of sample indicies (train / val), default: 176, else less for testing
     NUM_EVAL_INDICIES = 2   # Number of eval indicie, default: 118, else less for testing
 else:
-    EPOCHS = 100
+    EPOCHS = 50
 
     # Batch sizes
-    BATCH_SIZE_TRAIN = 2
-    BATCH_SIZE_VAL = 2
-    BATCH_SIZE_TEST = 2
+    BATCH_SIZE_TRAIN = 4
+    BATCH_SIZE_VAL = 4
+    BATCH_SIZE_TEST = 4
 
     # Number of workers
     NUM_WORKERS_TRAIN = 4
