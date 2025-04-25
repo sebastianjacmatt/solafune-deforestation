@@ -125,11 +125,11 @@ class PostProcess:
                 mask_for_a_class = np.zeros_like(mask_for_a_class)
 
             # Extract polygons
-            label = measure.label(mask_for_a_class, connectivity=2, background=0)
+            label = measure.label(mask_for_a_class, connectivity=2, background=0).astype(np.uint8)
             polygons = []
             for p, value in features.shapes(label, label):
-                p = shape(p)
-                if not p.is_valid:
+                p = shape(p).simplify(tolerance=0.5, preserve_topology=True)
+                if not p.is_valid or p.area < 3 or len(p.exterior.coords) < 4:
                     continue
                 polygons.append(p)
 
