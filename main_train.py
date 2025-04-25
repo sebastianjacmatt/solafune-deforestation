@@ -34,9 +34,10 @@ def main():
     print("Tuning began")
     hyperparameter_tuning()
     """
+
     
     # 1) Train
-    model, train_loader, val_loader = train_model(use_oba=False, use_icl=True)
+    model, train_loader, val_loader = train_model(use_oba=False, use_icl=False)
 
 
     # 2) Inference on val set
@@ -50,6 +51,7 @@ def main():
     # 4) Postprocess (detect polygons, generate JSON)
     post = PostProcess(
         pred_dir=VAL_PRED_DIR,
+        test_pred_dir=TEST_PRED_DIR,
         score_thresh=SCORE_THRESH,
         min_area=MIN_AREA,
         save_path=SUBMISSION_SAVE_PATH,
