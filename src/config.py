@@ -32,7 +32,6 @@ T_PSI = torch.nn.Sequential(  #TODO naive way of defining T_psi
             torch.nn.ReLU(),
             torch.nn.Conv2d(320, 320, kernel_size=3, padding=1),
         )
-W = 0.5
 
 
 TESTING = True # set to False for training

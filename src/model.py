@@ -11,7 +11,7 @@ from timm.scheduler import create_scheduler_v2
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(os.path.join(project_root, "src"))
 
-from config import EPOCHS, CLASS_NAMES, IR_LAMBDA, T_PSI, W
+from config import EPOCHS, CLASS_NAMES, IR_LAMBDA, T_PSI
 
 class Model(pl.LightningModule):
     """
@@ -106,51 +106,45 @@ class Model(pl.LightningModule):
         mask_d1 = batch["domains"][0]["mask"]
         mask_d2 = batch["domains"][1]["mask"]
 
-        logits_mask_d1 = self.forward(image_d1)
-        logits_mask_d2 = self.forward(image_d2)
+        # compute logits for both domains
+        logits_d1 = self.forward(image_d1)
+        logits_d2 = self.forward(image_d2)
         
-        # compute the Dice and BCE losses as well as the IoU metrics
-        base_loss_d1 = self.dice_loss_fn(logits_mask_d1, mask_d1) + self.bce_loss_fn(logits_mask_d1, mask_d1)
-        base_output_d1 = self.IoU_out(base_loss_d1, logits_mask_d1, mask_d1)
+        # compute Dice and BCE losses for both domains
+        base_loss_d1 = self.dice_loss_fn(logits_d1, mask_d1) + self.bce_loss_fn(logits_d1, mask_d1)
+        base_loss_d2 = self.dice_loss_fn(logits_d2, mask_d2) + self.bce_loss_fn(logits_d2, mask_d2)
+        base_loss = 0.5 * (base_loss_d1 + base_loss_d2)
+        
+        # Combine outputs and loss avrage across domains
+        out_d1 = self.IoU_out(base_loss_d1, logits_d1, mask_d1)
+        out_d2 = self.IoU_out(base_loss_d2, logits_d2, mask_d2)
 
-        base_loss_d2 = self.dice_loss_fn(logits_mask_d2, mask_d2) + self.bce_loss_fn(logits_mask_d2, mask_d2)
-        base_output_d2 = self.IoU_out(base_loss_d2, logits_mask_d2, mask_d2)
-    
-        # Combine outputs and loss
-        combined_output = {
-            "loss": (base_output_d1["loss"] + base_output_d2["loss"]) / 2,
-            "tp": (base_output_d1["tp"] + base_output_d2["tp"]) / 2,
-            "fp": (base_output_d1["fp"] + base_output_d2["fp"]) / 2,
-            "fn": (base_output_d1["fn"] + base_output_d2["fn"]) / 2,
-            "tn": (base_output_d1["tn"] + base_output_d2["tn"]) / 2,
+        avg_loss = 0.5 * (out_d1["loss"] + out_d2["loss"])
+        avg_tp = 0.5 * (out_d1["tp"] + out_d2["tp"])
+        avg_fp = 0.5 * (out_d1["fp"] + out_d2["fp"])
+        avg_fn = 0.5 * (out_d1["fn"] + out_d2["fn"])
+        avg_tn = 0.5 * (out_d1["tn"] + out_d2["tn"])
+
+        output = {
+            "loss" : avg_loss.detach().cpu(),
+            "tp" : avg_tp.detach().cpu(),
+            "fp" : avg_fp.detach().cpu(),
+            "fn" : avg_fn.detach().cpu(),
+            "tn" : avg_tn.detach().cpu(),
         }
-        combined_loss = (base_loss_d1 + base_loss_d2) / 2
 
-        loss_int_d1 = self.int_loss(
-            batch["domains"][0]["image"],
-            batch["domains"][1]["image"],
-            batch["domains"][0]["mask"], #TODO: use two masks instead of one and interpolate between them
-            ir_lambda=IR_LAMBDA,
-            w=0.5, # interpolate in the middle the images
-            )
+        self.training_step_outputs.append(output)
 
-        loss_int_d2 = self.int_loss(
-            batch["domains"][1]["image"],
-            batch["domains"][0]["image"],
-            batch["domains"][1]["mask"], #TODO: use two masks instead of one and interpolate between them
-            ir_lambda=IR_LAMBDA,
-            w=W, # interpolate in the middle the images
-            )
-        
-        # combine the interpolation losses
-        loss_int = (loss_int_d1 + loss_int_d2) / 2
-
-        self.training_step_outputs.append(combined_output)
+        # symmetric interpolation loss
+        loss_int = 0.5 * (
+            self.int_loss(image_d1, image_d2, mask_d1) + 
+            self.int_loss(image_d2, image_d1, mask_d2)
+        )
         
         # interpolation loss added as regularization parameter
-        return combined_loss + IR_LAMBDA * loss_int
+        return base_loss + IR_LAMBDA * loss_int
 
-    def int_loss(self,x, x_prime, y, ir_lambda=IR_LAMBDA, w=None):
+    def int_loss(self,x, x_prime, y):
         """
         Computes the interpolation loss based on equation (4) in the paper.
         Args:
@@ -164,28 +158,50 @@ class Model(pl.LightningModule):
             torch.Tensor: Interpolation loss.
         """
 
-        if w is None:
-            w = 0.5
+        # TODO: decoder will crash without proper feature maps on decoding
+        # feats       = self._to_feature_list(self.encoder(x))        # [f0 … fL]
+        # feats_prime = self._to_feature_list(self.encoder(x_prime))
+
+        # z, z_prime = feats[-1], feats_prime[-1]
+
+        # w        = torch.rand(z.size(0), 1, 1, 1, device=z.device)
+        # delta    = z_prime - z
+        # z_interp = z + w * self.T_psi(delta)                        # ← IR step
+
+        # feats[-1] = z_interp                                        # ← **replace deepest**
+        # logits_interp = self.segmentation_head(self.decoder(feats)) # ← **decode**
+        
+        # loss_cls = self.dice_loss_fn(logits_interp, y) + \
+        #    self.bce_loss_fn (logits_interp, y)
+
+        # z_w1   = z + self.T_psi(delta)                              # w = 1
+        # l2_loss = F.mse_loss(z_w1, z_prime)
+
+        # return loss_cls + l2_loss
+
 
         # encode x and x'
         z = self.encoder(x)[-1]
         z_prime = self.encoder(x_prime)[-1]
 
-        # compute interpolation representation Z(x, x', w)
+        # compute interpolation representation Z(x,x′;w,ψ)
+        w = torch.rand(1, device=x.device) #TODO: maybe use config.device instead of x.device? #TODO: maybe shouldn't be random
         delta = z_prime - z
         z_interp = z + w * self.T_psi(delta)
 
-        # decode z'' from Z(x, x', w)
-        logits_interp = self.segmentation_head(self.decoder([z_interp]))
+        # decode z'' from Z(x,x′;w,ψ)
+        logits_interp = self.segmentation_head(
+            self.decoder([z_interp])
+        )
 
         # compute Dice and BCE losses of interpolated logits
-        loss_interp = self.dice_loss_fn(logits_interp, y) + self.bce_loss_fn(logits_interp, y)
+        loss_cls = self.dice_loss_fn(logits_interp, y) + self.bce_loss_fn(logits_interp, y)
 
-        # Step 5: regularization term ||Z(x,x',1) - E(x')||^2
+        # Step 5: regularization term ||Z(x,x',1) - E(x')||
         z_w1 = z + self.T_psi(delta)
         l2_loss = F.mse_loss(z_w1, z_prime)
 
-        return loss_interp
+        return loss_cls + l2_loss
 
     def IoU_out(self, loss, logits_mask, mask) -> dict:
         # compute stats
