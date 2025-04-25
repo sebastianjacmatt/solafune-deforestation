@@ -40,7 +40,7 @@ def independent_mh_sampler(model, G, x, y, n_steps):
     return samples
 
 def primal_dual_augmentation(model, data_batch, G, optimizer, gamma, epsilon=0.01,
-                             eta_p=0.001, eta_d=0.001, n_mh_steps=10, m_samples=5, device='cuda'):
+                             eta_p=0.001, eta_d=0.001, n_mh_steps=2, m_samples=1, device='cuda'):
     """ 
     Performs a single training step using the primal-dual optimization approach for invariance-constrained learning.
     Algorithm 2 from paper https://proceedings.mlr.press/v202/hounie23a/hounie23a.pdf
@@ -72,7 +72,7 @@ def primal_dual_augmentation(model, data_batch, G, optimizer, gamma, epsilon=0.0
 
     for x, y in data_batch:
         x, y = x.to(device), y.to(device)
-        mh_samples = independent_mh_sampler(model, G, x, y, n_steps= n_mh_steps)
+        mh_samples = independent_mh_sampler(model, G, x, y, n_steps = n_mh_steps)
         selected = random.sample(mh_samples, k=min(m_samples, len(mh_samples)))
 
         losses = []

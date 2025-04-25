@@ -42,6 +42,7 @@ These methods were adapted and integrated into our preprocessing and training pi
 │   └── checkpoints/               # Saved weights from training epochs or best models
 ├── outputs                        # All model output files (e.g., predictions, visualizations)
 │   ├── predictions                # Raw model predictions on validation/test data
+│   │   ├── test_preds/            # Predicted masks or classes on test set
 │   │   └── val_preds/             # Predicted masks or classes on validation set
 │   ├── submissions                # JSON files for leaderboard submissions
 │   │   ├── 0.57/                  # Folder named after a submission score (e.g., IoU 0.57)
@@ -89,7 +90,8 @@ To integrate OBA into training, a dedicated dataset class is defined in `dataset
 
 
 ### Invariance-Constrained Learning
-TODO:
+The Automatic data augmentation via Invariance-Constrained Learning pipeline is implemented mainly in src/invariance_constrained.py
+The two primary functions "independent_mh_sampler" (1) and "primal_dual_augmentation" (2) corresponds with algorithms 1 and 2 from the paper. The functions are used in src/utils/train.utils with flags. If flag is activated, augmentations in the dataloader will be turned off, and a separate fit-function "invariance_constrained_fit" will instead be run. This will train the model using the method from the paper.
 
 ### Interpolation Robustness
 TODO:
