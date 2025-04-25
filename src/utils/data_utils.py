@@ -1,5 +1,6 @@
 import sys
 import os
+from typing import Dict, List
 import numpy as np
 import tifffile
 import torch
@@ -44,35 +45,82 @@ def normalize_image(image):
     std_arr = np.array(STD, dtype=np.float32).reshape(12, 1, 1)
     return (image - mean_arr) / std_arr
 
-def pad_image(image, channels , padding="zeroing"):
+# Methods related to Interpolation Robustness (IR)
+def pad_image(
+    image: np.ndarray,
+    keep_channels: List[int],
+    padding: str = "zeroing",
+) -> np.ndarray:
     """
-    Pads an image except spesified channels
+    Overwrite every spectral band *except* those in `keep_channels`.
 
-    Args:
-        image
-        channels: list of channels to be padded
-        padding: "zeroing" or "repitition"
-    Returns:
-        padded image
-    """
-    assert padding in ["zeroing", "repitition"], f"Invalid padding method: {padding}"
+    Parameters
+    ----------
+    image : np.ndarray
+        A 12-band image, shape (12, H, W) **or** (H, W, 12).
+    keep_channels : list[int]
+        Channel indices (0-based) to preserve.
+    padding : {"zeroing", "repetition"}, default "zeroing"
+        * "zeroing"    – set discarded bands to 0  
+        * "repetition" – copy the first kept band into every discarded band
 
-def domain_image_split(image, mask , channels: list[list[int]]) -> list[dict[str, torch.Tensor]]:
+    Returns
+    -------
+    np.ndarray  (12, H, W)  same dtype as input.
     """
-    Splits an image into spesified channel images where channels outside domains are padded
-    Args:
-        image: input image
-        mask: mask of the image
-        channels: list of channels to be split
-    Returns:
-        domain_images: dictionary of 12-channel images of different domains 
-        example:
-        ```python
-        domain_samples = [
-            {"image": image1, "mask": mask1},
-            {"image": image2, "mask": mask2},
-            ...,
+    assert padding in {"zeroing", "repetition"}, f"Invalid padding method: {padding}"
+
+    # ensure (C, H, W)
+    if image.shape[0] != 12 and image.shape[-1] == 12:
+        image = image.transpose(2, 0, 1)
+
+    out = image.copy()
+    discard = [i for i in range(12) if i not in keep_channels]
+
+    if padding == "zeroing":
+        out[discard] = 0.0
+    else:  # "repetition"
+        ref = out[keep_channels[0]]
+        for ch in discard:
+            out[ch] = ref
+
+    return out
+
+
+def domain_image_split(
+    image: np.ndarray,
+    mask: np.ndarray,
+    channel_groups: List[List[int]],
+    padding: str = "zeroing",
+) -> List[Dict[str, torch.Tensor]]:
+    """
+    Produce one 12-band sample per spectral domain.
+
+    Each sub-list in `channel_groups` defines a *domain*; its channels keep
+    real data, every other band is padded via `padding`.
+
+    Returns
+    -------
+    list of dict
+        [
+          {"image": torch.FloatTensor(12, H, W),
+           "mask" : torch.FloatTensor(4 , H, W)},
+          ...
         ]
-        ```
-
     """
+    # standardise layout once
+    if image.shape[0] != 12 and image.shape[-1] == 12:
+        image = image.transpose(2, 0, 1)
+    if mask.shape[0] != 4 and mask.shape[-1] == 4:
+        mask = mask.transpose(2, 0, 1)
+
+    samples = []
+    for grp in channel_groups:
+        padded = pad_image(image, grp, padding=padding)
+        samples.append({
+            "image": torch.from_numpy(padded.copy()),
+            "mask" : torch.from_numpy(mask.copy()),
+        })
+    return samples
+
+

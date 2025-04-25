@@ -165,12 +165,12 @@ class Model(pl.LightningModule):
         Returns:
             torch.Tensor: Interpolation loss.
         """
-
+        # TODO: Preemtive fix for the decoder crashing, will fix after test runs
         # TODO: decoder will crash as it expects a list of features from encoding step, z_interp is not a list and we therefor need 
         # feats       = self._to_feature_list(self.encoder(x))        # [f0 … fL]
         # feats_prime = self._to_feature_list(self.encoder(x_prime))
 
-        # z, z_prime = feats[-1], feats_prime[-1]
+        # z, z_prime = feats[-1], self.encoder(x_prime)[-1]) #TODO: no need for features for x_prime as it should already have been encoded and can be decoded properly
 
         # w        = torch.rand(z.size(0), 1, 1, 1, device=z.device)
         # delta    = z_prime - z
