@@ -144,6 +144,14 @@ class Model(pl.LightningModule):
         # interpolation loss added as regularization parameter
         return base_loss + IR_LAMBDA * loss_int
 
+    def _to_feature_list(self, encoder_out):
+        """
+        SMP encoders sometimes return an OrderedDict (EfficientNet-V2) and
+        sometimes a plain list.  Convert anything to a list whose order is
+        [shallow … deep].  You only need this little util once.
+        """
+        return list(encoder_out.values()) if isinstance(encoder_out, dict) else encoder_out
+
     def int_loss(self,x, x_prime, y):
         """
         Computes the interpolation loss based on equation (4) in the paper.
@@ -158,7 +166,7 @@ class Model(pl.LightningModule):
             torch.Tensor: Interpolation loss.
         """
 
-        # TODO: decoder will crash without proper feature maps on decoding
+        # TODO: decoder will crash as it expects a list of features from encoding step, z_interp is not a list and we therefor need 
         # feats       = self._to_feature_list(self.encoder(x))        # [f0 … fL]
         # feats_prime = self._to_feature_list(self.encoder(x_prime))
 
