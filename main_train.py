@@ -23,13 +23,17 @@ from postprocess import PostProcess
 torch.cuda.empty_cache()
 torch.set_float32_matmul_precision("high")
 
+
+
 def main():
     # 0) Hyperparameter tuning for invariance constrained learning
     # Best Configuration:
-    #'learning_rate': 0.001, 'batch_size': 32, 'gamma': 0.1, 'epsilon': 0.01, 'eta_p': 0.001, 'eta_d': 0.001
+    #{'learning_rate': 0.001, 'gamma': 0.5, 'epsilon': 0.05, 'eta_p': 0.01, 'eta_d': 0.01}
 
-    #print("Tuning began")
-    #hyperparameter_tuning()
+    """
+    print("Tuning began")
+    hyperparameter_tuning()
+    """
 
     
     # 1) Train

@@ -19,10 +19,10 @@ MIN_AREA = 20000
 
 
 # Invariance Constrained Learning configuartions
-EPSILON = 0.01
-ETA_D = 0.001
-ETA_P = 0.001
-GAMMA=0.1
+EPSILON = 0.05
+ETA_D = 0.01
+ETA_P = 0.01
+GAMMA=0.5
 N_MH_STEPS=2
 M_SAMPLES=1
 

@@ -22,14 +22,18 @@ def independent_mh_sampler(model, G, x, y, n_steps):
     """
 
     g_t = np.random.choice(G) 
-    gx_t = apply_albumentations(g_t, x)
-    loss_t = model.dice_loss_fn(model(gx_t.unsqueeze(0)), y.unsqueeze(0)) + model.bce_loss_fn(model(gx_t.unsqueeze(0)), y.unsqueeze(0))
+    gx_t, gy_t = apply_albumentations(g_t, x, y)
+    loss_t = model.dice_loss_fn(model(gx_t.unsqueeze(0)), gy_t.unsqueeze(0)) + \
+         model.bce_loss_fn(model(gx_t.unsqueeze(0)), gy_t.unsqueeze(0))
     samples = [(g_t, loss_t.item())]
     
     for _ in range(n_steps):
         g_prop = random.choice(G)
-        gx_prop = apply_albumentations(g_prop,x)
-        loss_prop = model.dice_loss_fn(model(gx_prop.unsqueeze(0)), y.unsqueeze(0)) + model.bce_loss_fn(model(gx_prop.unsqueeze(0)), y.unsqueeze(0))
+        gx_prop, gy_prop = apply_albumentations(g_prop, x, y)
+        model_output = model(gx_prop.unsqueeze(0)) 
+            
+        loss_prop = model.dice_loss_fn(model_output, gy_prop.unsqueeze(0)) + \
+                model.bce_loss_fn(model_output, gy_prop.unsqueeze(0))
 
         acceptance_ratio = min(1.0, loss_prop.item() / loss_t.item()) if loss_t.item() > 0 else 1.0   
         if np.random.rand() < acceptance_ratio:
@@ -77,11 +81,11 @@ def primal_dual_augmentation(model, data_batch, G, optimizer, gamma, epsilon=0.0
 
         losses = []
         for g, _ in selected:
-            gx = apply_albumentations(g, x)
+            gx, gy = apply_albumentations(g, x, y) 
             pred = model(gx.unsqueeze(0))
             losses.append(
-                model.dice_loss_fn(pred, y.unsqueeze(0)) +
-                model.bce_loss_fn(pred, y.unsqueeze(0))
+                model.dice_loss_fn(pred, gy.unsqueeze(0)) +
+                model.bce_loss_fn(pred, gy.unsqueeze(0))
             )
         transformed_losses.append(sum(losses) / len(losses))
 
@@ -109,18 +113,25 @@ def primal_dual_augmentation(model, data_batch, G, optimizer, gamma, epsilon=0.0
 
     return L_total.item(), gamma
 
-def apply_albumentations(g, x):
+def apply_albumentations(g, x, y):
     """
     Utility function for applying an Albumentations augmentation to a PyTorch tensor.'
 
     Args:
         g: Albumentations augmentation function.
         x (torch.Tensor): Input tensor of shape (C, H, W).
+                y (torch.Tensor): Ground truth mask tensor of shape (C, H, W).
 
     Returns:
         torch.Tensor: Augmented tensor of shape (C, H, W).
     """
     
-    x_np = x.permute(1, 2, 0).cpu().numpy()
-    x_aug = g(image=x_np)["image"]
-    return torch.from_numpy(x_aug).permute(2, 0, 1).to(x.device) 
+    x_np = x.permute(1, 2, 0).cpu().numpy()  # Convert image to (H, W, C) for Albumentations
+    y_np = y.permute(1, 2, 0).cpu().numpy()
+    augmented = g(image=x_np, mask=y_np)
+    x_aug = augmented["image"]
+    y_aug = augmented["mask"]
+    return (
+        torch.from_numpy(x_aug).permute(2, 0, 1).to(x.device),  # Convert back to (C, H, W)
+        torch.from_numpy(y_aug).permute(2, 0, 1).to(y.device),  # Convert back to (H, W)
+    )
