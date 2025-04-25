@@ -42,6 +42,7 @@ These methods were adapted and integrated into our preprocessing and training pi
 │   └── checkpoints/               # Saved weights from training epochs or best models
 ├── outputs                        # All model output files (e.g., predictions, visualizations)
 │   ├── predictions                # Raw model predictions on validation/test data
+│   │   ├── test_preds/            # Predicted masks or classes on test set
 │   │   └── val_preds/             # Predicted masks or classes on validation set
 │   ├── submissions                # JSON files for leaderboard submissions
 │   │   ├── 0.57/                  # Folder named after a submission score (e.g., IoU 0.57)
