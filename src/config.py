@@ -29,9 +29,9 @@ MAX_EXTRACT_TRIES = 5 # Number of exctracting object tries before moving on to n
 CHANNELS = [[1,2,3],[4,5,6]]
 IR_LAMBDA = 0.1 # Higher means more robustsness
 T_PSI = torch.nn.Sequential(  #TODO naive way of defining T_psi
-            torch.nn.Conv2d(320, 320, kernel_size=3, padding=1),
+            torch.nn.Conv2d(256, 320, kernel_size=3, padding=1),
             torch.nn.ReLU(),
-            torch.nn.Conv2d(320, 320, kernel_size=3, padding=1),
+            torch.nn.Conv2d(320, 256, kernel_size=3, padding=1),
         )
 
 
