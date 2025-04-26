@@ -18,6 +18,7 @@ from config import (
     NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS,
     BACKGROUND_PROB, EXTRACT_FROM_SAME_IMAGE, OBA_PROB, NUM_OBA_OBJECTS
 )
+from src.ir_model import IRModel
 from src.utils.global_paths import (
     DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
 )
@@ -213,10 +214,10 @@ def train_model(use_oba=False, use_icl=False, use_ir=False):
     
     if use_ir:
         train_loader, val_loader = prepare_dataloaders(get_augmentations(), use_ir=True)
-        model = Model(use_ir=True)
+        model = IRModel(use_ir=True)
     elif use_ir & use_oba:
         train_loader, val_loader = prepare_dataloaders_oba(get_augmentations(), use_ir=True)
-        model = Model(use_ir=True)
+        model = IRModel(use_ir=True)
     else: 
         model = Model()
     trainer = get_trainer()

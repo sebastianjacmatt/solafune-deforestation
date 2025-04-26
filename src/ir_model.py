@@ -50,7 +50,6 @@ class IRModel(pl.LightningModule):
 
 
     def forward(self, x):
-        
         return self.model(x)
 
     def shared_step(self, batch, stage):
@@ -116,12 +115,13 @@ class IRModel(pl.LightningModule):
         image_d2 = batch["domains"][1]["image"]
         mask_d1 = batch["domains"][0]["mask"]
         mask_d2 = batch["domains"][1]["mask"]
-
-       
-        feats_d1 = self._to_feature_list(self.encoder(image_d1))
-        feats_d2 = self._to_feature_list(self.encoder(image_d2))
-        logits_d1 = self.segmentation_head(self.decoder(feats_d1))
-        logits_d2 = self.segmentation_head(self.decoder(feats_d2))
+   
+        feats_d1       = list(self.encoder(image_d1))
+        feats_d2       = list(self.encoder(image_d2))
+        decoder_out_d1 = self.decoder(*feats_d1)
+        decoder_out_d2 = self.decoder(*feats_d2)
+        logits_d1      = self.segmentation_head(decoder_out_d1)
+        logits_d2      = self.segmentation_head(decoder_out_d2)
         
         # Compute Dice and BCE losses for both domains
         base_loss_d1 = self.dice_loss_fn(logits_d1, mask_d1) + self.bce_loss_fn(logits_d1, mask_d1)
@@ -154,9 +154,11 @@ class IRModel(pl.LightningModule):
             self.int_loss(feats_d2, feats_d1, mask_d2)
         )
         
+        #del feats_d1, feats_d2, decoder_out_d1, decoder_out_d2, logits_d1, logits_d2 
+        
         return base_loss + IR_LAMBDA * loss_int
 
-    def int_loss(self, feats, feats_prime, y):
+    def int_loss(self, feats_d1, feats_d2, y):
         """
         Computes the interpolation loss.
 
@@ -168,25 +170,27 @@ class IRModel(pl.LightningModule):
         Returns:
             torch.Tensor: Interpolation loss.
         """
-        z = feats[-1]
-        z_prime = feats_prime[-1]
 
-        w = torch.rand(z.size(0), 1, 1, 1, device=z.device)
-        delta = z_prime - z
+        e_x = feats_d1[-1]
+        e_x_prime = feats_d2[-1]
+
+        w = torch.rand(e_x.size(0), 1, 1, 1, device=e_x.device)
+        delta = e_x_prime - e_x
 
         #TODO:with torch.amp.autocast(device_type="cuda" if torch.cuda.is_available() else "cpu"):
-        z_interp = z + w * self.T_psi(delta)
-        feats_mod = feats.copy()
-        feats_mod[-1] = z_interp
-        logits_interp = self.segmentation_head(self.decoder(feats_mod))
+        z_interp = e_x + w * self.T_psi(delta)
+        z_feats = feats_d1 # TODO:Copy here
+        z_feats[-1] = z_interp
+        decoder_out_z = self.decoder(*z_feats)
+        logits_interp = self.segmentation_head(decoder_out_z)
         
         loss_cls = self.dice_loss_fn(logits_interp, y) + \
             self.bce_loss_fn(logits_interp, y)
 
-        z_w1 = z + self.T_psi(delta)
-        l2_loss = F.mse_loss(z_w1, z_prime)
+        z_w1 = e_x + self.T_psi(delta)
+        l2_loss = F.mse_loss(z_w1, e_x_prime)
 
-        #TODO:del z, z_prime, delta, z_interp, logits_interp, z_w1
+        #del z, z_prime, delta, z_interp, logits_interp, z_w1 # optimization
         return loss_cls + l2_loss
 
     def IoU_out(self, loss, logits_mask, mask):

@@ -45,7 +45,7 @@ def main():
     #you can avoid fragmentation by setting this env_variable $env:PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True" 
     """
     # 1) Train
-    model, train_loader, val_loader = train_model(use_oba=False, use_icl=False, use_ir=False)
+    model, train_loader, val_loader = train_model(use_oba=False, use_icl=False, use_ir=True)
 
 
 
