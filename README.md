@@ -93,7 +93,8 @@ These methods were adapted and integrated into our preprocessing and training pi
 │   │   │   ├── oba.py                     # Main class for handling OBA logic
 │   │   │   └── object_augmentation.py     # Augmentations applied to pasted objects
 │   │   ├── data_utils.py                 # General-purpose data loading and manipulation
-│   │   ├── global_paths.py               # Centralized paths used across modules
+│   │   ├── global_paths.py               # Centralized paths used across 
+│   │   ├── icl_hp_tune.py                # Hyperparameter tuning for Invariance-Constrained Learning (ICL)
 │   │   ├── inference_utils.py            # Inference functions and postprocessing steps
 │   │   └── train_utils.py                # Helper functions for training loops and metrics
 │   ├── config.py                 # Global configuration for the project (paths, hyperparams)
