@@ -193,6 +193,10 @@ def train_model(use_oba=False, use_icl=False, use_ir=False):
         train_loader (torch.utils.data.DataLoader): DataLoader for the training dataset.
         val_loader (torch.utils.data.DataLoader): DataLoader for the validation dataset.
     """
+
+    if use_icl and use_ir:
+        raise ValueError("Cannot use both use_icl and use_ir at the same time.")
+
     if use_oba:
         train_loader, val_loader = prepare_dataloaders_oba(get_augmentations())
     elif use_icl:
