@@ -167,46 +167,22 @@ class Model(pl.LightningModule):
         """
         # TODO: Preemtive fix for the decoder crashing, will fix after test runs
         # TODO: decoder will crash as it expects a list of features from encoding step, z_interp is not a list and we therefor need 
-        # feats       = self._to_feature_list(self.encoder(x))        # [f0 … fL]
-        # feats_prime = self._to_feature_list(self.encoder(x_prime))
+        feats       = self._to_feature_list(self.encoder(x))        # [f0 … fL]
+        feats_prime = self._to_feature_list(self.encoder(x_prime))
 
-        # z, z_prime = feats[-1], self.encoder(x_prime)[-1]) #TODO: no need for features for x_prime as it should already have been encoded and can be decoded properly
+        z, z_prime = feats[-1], self.encoder(x_prime)[-1] #TODO: no need for features for x_prime as it should already have been encoded and can be decoded properly
 
-        # w        = torch.rand(z.size(0), 1, 1, 1, device=z.device)
-        # delta    = z_prime - z
-        # z_interp = z + w * self.T_psi(delta)                        # ← IR step
+        w        = torch.rand(z.size(0), 1, 1, 1, device=z.device)
+        delta    = z_prime - z
+        z_interp = z + w * self.T_psi(delta)                        # ← IR step
 
-        # feats[-1] = z_interp                                        # ← **replace deepest**
-        # logits_interp = self.segmentation_head(self.decoder(feats)) # ← **decode**
+        feats[-1] = z_interp                                        # ← **replace deepest**
+        logits_interp = self.segmentation_head(self.decoder(feats)) # ← **decode**
         
-        # loss_cls = self.dice_loss_fn(logits_interp, y) + \
-        #    self.bce_loss_fn (logits_interp, y)
+        loss_cls = self.dice_loss_fn(logits_interp, y) + \
+            self.bce_loss_fn (logits_interp, y)
 
-        # z_w1   = z + self.T_psi(delta)                              # w = 1
-        # l2_loss = F.mse_loss(z_w1, z_prime)
-
-        # return loss_cls + l2_loss
-
-
-        # encode x and x'
-        z = self.encoder(x)[-1]
-        z_prime = self.encoder(x_prime)[-1]
-
-        # compute interpolation representation Z(x,x′;w,ψ)
-        w = torch.rand(1, device=x.device) #TODO: maybe use config.device instead of x.device? #TODO: maybe shouldn't be random
-        delta = z_prime - z
-        z_interp = z + w * self.T_psi(delta)
-
-        # decode z'' from Z(x,x′;w,ψ)
-        logits_interp = self.segmentation_head(
-            self.decoder([z_interp])
-        )
-
-        # compute Dice and BCE losses of interpolated logits
-        loss_cls = self.dice_loss_fn(logits_interp, y) + self.bce_loss_fn(logits_interp, y)
-
-        # Step 5: regularization term ||Z(x,x',1) - E(x')||
-        z_w1 = z + self.T_psi(delta)
+        z_w1   = z + self.T_psi(delta)                              # w = 1
         l2_loss = F.mse_loss(z_w1, z_prime)
 
         return loss_cls + l2_loss
