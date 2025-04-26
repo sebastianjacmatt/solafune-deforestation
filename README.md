@@ -12,6 +12,34 @@ Our model was designed to identify four specific classes of human or land-use ac
 The goal of the challenge is to support sustainable land-use monitoring and informed decision-making through AI-powered environmental insights.
 
 
+## Running and Testing the Machine Learning Pipeline
+
+1. **Download the Dataset**  
+   Download the competition dataset from [this link](https://solafune.com/competitions/68ad4759-4686-4bb3-94b8-7063f755b43d?menu=data&tab=).
+
+2. **Prepare the Data**  
+   - Unzip the downloaded files.
+   - Place all training images into the `data/train_images/` folder.
+   - Place all evaluation images into the `data/evaluation_images/` folder.
+   - Place the `train_annotations.json` file directly into the `data/` folder.
+
+3. **Generate Training Masks**  
+   Run the `generate_masks.py` script to create training masks from the ground truth polygons.  
+   This will generate masks and save them under the `data/train_masks/` directory.
+
+4. **Run the Pipeline**  
+   Execute the `main_train.py` script located in the top-level directory to train the model.
+
+5. **Configuration**  
+   You can adjust key parameters such as the number of epochs, scheduler settings, optimizer choice, batch size, and number of workers in the `src/config.py` file.  
+   **Important:** Ensure that the `TESTING` flag is set to `False` to enable full training and evaluation.
+
+6. **Output**  
+   The pipeline will output training logs to the terminal and generate a `submission.json` file.  
+   This file can be uploaded to the [Solafune competition site](https://solafune.com/competitions/68ad4759-4686-4bb3-94b8-7063f755b43d?menu=about&tab=overview) to validate the model's performance on the test data.
+
+
+
 ## Applications of Research Papers to the Project
 To develop a high-performing and generalizable segmentation model for detecting deforestation drivers, we drew inspiration from three key research papers. Each provided insights into augmentation techniques and robustness strategies that informed our implementation:
 
@@ -79,7 +107,7 @@ These methods were adapted and integrated into our preprocessing and training pi
 
 ### Where the Research Papers are Impleneted
 
-### Object-Based Augmentation
+#### Object-Based Augmentation
 
 The Object-Based Augmentation (OBA) pipeline is primarily implemented in the `object_based_augmentation` folder under `src/utils`.
 
@@ -89,12 +117,12 @@ The Object-Based Augmentation (OBA) pipeline is primarily implemented in the `ob
 To integrate OBA into training, a dedicated dataset class is defined in `dataset.py`. This class handles the loading of OBA-prepared samples and ensures compatibility with the training loop. The pipeline is designed to be modular and easy to toggle via a simple boolean flag `use_oba` in the main script, which switches between standard and OBA-enabled dataloaders.
 
 
-### Invariance-Constrained Learning
+#### Invariance-Constrained Learning
 The Automatic data augmentation via Invariance-Constrained Learning pipeline is implemented mainly in `src/invariance_constrained.py`
 The two primary functions `independent_mh_sampler.py` (1) and `primal_dual_augmentation.py` (2) corresponds with algorithms 1 and 2 from the paper. The functions are used in `src/utils/train.utils`  with flags. If flag is activated, augmentations in the dataloader will be turned off, and a separate fit-function `invariance_constrained_fit` will instead be run. This will train the model using the method from the paper.
 
 
-### Interpolation Robustness
+#### Interpolation Robustness
 TODO:
 
 

@@ -1,7 +1,6 @@
 import sys
 import os
 import json
-import geopandas as gpd
 
 # Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), "../../.."))
@@ -16,7 +15,8 @@ with open(TRAIN_ANNOTATIONS_PATH) as f:
 
 json_data = data["images"][1]["annotations"]
 
-# Taken from https://solafune.com/competitions/68ad4759-4686-4bb3-94b8-7063f755b43d?menu=discussion&tab=&page=3&topicId=d689d4a8-a939-4f0e-87bb-273707e8263f
+### Taken from https://solafune.com/competitions/68ad4759-4686-4bb3-94b8-7063f755b43d?menu=discussion&tab=&page=3&topicId=d689d4a8-a939-4f0e-87bb-273707e8263f
+
 def convert_to_geojson(data):
   """
   Converts a list of dictionaries in the specified format to GeoJSON
