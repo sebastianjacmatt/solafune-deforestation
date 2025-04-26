@@ -93,7 +93,7 @@ These methods were adapted and integrated into our preprocessing and training pi
 │   │   │   ├── oba.py                     # Main class for handling OBA logic
 │   │   │   └── object_augmentation.py     # Augmentations applied to pasted objects
 │   │   ├── data_utils.py                 # General-purpose data loading and manipulation
-│   │   ├── global_paths.py               # Centralized paths used across 
+│   │   ├── global_paths.py               # Centralized paths used across modules
 │   │   ├── icl_hp_tune.py                # Hyperparameter tuning for Invariance-Constrained Learning (ICL)
 │   │   ├── inference_utils.py            # Inference functions and postprocessing steps
 │   │   └── train_utils.py                # Helper functions for training loops and metrics
@@ -118,7 +118,7 @@ The Object-Based Augmentation (OBA) pipeline is primarily implemented in the `ob
 To integrate OBA into training, a dedicated dataset class is defined in `dataset.py`. This class handles the loading of OBA-prepared samples and ensures compatibility with the training loop. The pipeline is designed to be modular and easy to toggle via a simple boolean flag `use_oba` in the main script, which switches between standard and OBA-enabled dataloaders.
 
 
-### Invariance-Constrained Learning
+#### Invariance-Constrained Learning
 The Automatic data augmentation via Invariance-Constrained Learning pipeline is implemented mainly in `src/invariance_constrained.py`
 The two primary functions `independent_mh_sampler.py` (1) and `primal_dual_augmentation.py` (2) corresponds with algorithms 1 and 2 from the paper. The functions are used in `src/utils/train.utils`  with flags. If flag is activated, augmentations in the dataloader will be turned off, and a separate fit-function `invariance_constrained_fit` will instead be run. This will train the model using the method from the paper.
 
