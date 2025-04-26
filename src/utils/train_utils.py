@@ -24,6 +24,7 @@ from src.utils.global_paths import (
 from model import Model
 from invariance_constrained import primal_dual_augmentation
 
+# Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(os.path.join(project_root, "src"))
 

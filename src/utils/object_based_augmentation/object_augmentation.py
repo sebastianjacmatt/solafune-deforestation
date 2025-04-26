@@ -15,7 +15,7 @@ def rotate_object(obj_img, obj_mask):
     M[0, 2] += (nW / 2) - center[0]
     M[1, 2] += (nH / 2) - center[1]
 
-    # warp image and mask
+    # Warp image and mask
     rotated_img  = cv2.warpAffine(obj_img,  M, (nW, nH), flags=cv2.INTER_LINEAR)
     rotated_mask = cv2.warpAffine(obj_mask, M, (nW, nH), flags=cv2.INTER_NEAREST)
 
