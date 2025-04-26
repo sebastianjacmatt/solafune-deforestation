@@ -1,14 +1,15 @@
 # Ignore large data files
-data/*
+data/evaluation_images/*
+data/train_images/*
+data/train_masks/*
+data/train_annotations.json
+
 *.zip
 outputs/predictions/val_preds/*
 outputs/predictions/test_preds/*
 outputs/predictions/training_result/*
 outputs/visualizations/*
 outputs/submissions/*
-
-
-src/training/data/
 
 # Ignore intermediate files
 *.pyc
