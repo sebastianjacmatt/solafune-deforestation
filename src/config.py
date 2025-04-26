@@ -5,7 +5,7 @@ CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
 
 # Optimizer
 OPTIMIZER = "adamw"
-LEARNING_RATE_OPT = 1e-3
+LEARNING_RATE_OPT = 1e-4
 WEIGHT_DECAY = 1e-2
 
 # Scheduler
