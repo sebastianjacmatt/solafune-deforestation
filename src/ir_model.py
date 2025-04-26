@@ -31,12 +31,6 @@ class IRModel(pl.LightningModule):
             classes=4,
         )
 
-        # Disable batch norm tracking to save memory
-        for module in self.model.encoder.modules():
-            if isinstance(module, torch.nn.BatchNorm2d):
-                module.track_running_stats = False
-                module.running_mean = None
-                module.running_var = None
 
         # Define loss functions
         self.dice_loss_fn = smp.losses.DiceLoss(
@@ -62,10 +56,11 @@ class IRModel(pl.LightningModule):
         return self.decoder(feats)
 
     def forward(self, x):
-        feats = checkpoint(self._checkpointed_encoder, x, use_reentrant=False)
+        """feats = checkpoint(self._checkpointed_encoder, x, use_reentrant=False)
         decoded = checkpoint(self._checkpointed_decoder, feats, use_reentrant=False)
         logits = self.segmentation_head(decoded)
-        return logits
+        return logits"""
+        return self.model(x)
 
     def shared_step(self, batch, stage):
         """
@@ -190,18 +185,18 @@ class IRModel(pl.LightningModule):
         w = torch.rand(z.size(0), 1, 1, 1, device=z.device)
         delta = z_prime - z
 
-        with torch.amp.autocast(device_type="cuda" if torch.cuda.is_available() else "cpu"):
-            z_interp = z + w * self.T_psi(delta)
-            feats[-1] = z_interp
-            logits_interp = self.segmentation_head(checkpoint(self._checkpointed_decoder, feats, use_reentrant=False))
-            
-            loss_cls = self.dice_loss_fn(logits_interp, y) + \
-                self.bce_loss_fn(logits_interp, y)
+        #with torch.amp.autocast(device_type="cuda" if torch.cuda.is_available() else "cpu"):
+        z_interp = z + w * self.T_psi(delta)
+        feats[-1] = z_interp
+        logits_interp = self.segmentation_head(self.decoder(feats))
+        
+        loss_cls = self.dice_loss_fn(logits_interp, y) + \
+            self.bce_loss_fn(logits_interp, y)
 
-            z_w1 = z + self.T_psi(delta)
-            l2_loss = F.mse_loss(z_w1, z_prime)
+        z_w1 = z + self.T_psi(delta)
+        l2_loss = F.mse_loss(z_w1, z_prime)
 
-        del z, z_prime, delta, z_interp, logits_interp, z_w1
+        #del z, z_prime, delta, z_interp, logits_interp, z_w1
         return loss_cls + l2_loss
 
     def IoU_out(self, loss, logits_mask, mask):
