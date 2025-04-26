@@ -37,7 +37,7 @@ def main():
 
     
     # 1) Train
-    model, train_loader, val_loader = train_model(use_oba=False, use_icl=False)
+    model, train_loader, val_loader = train_model(use_oba=False, use_icl=True)
 
 
     # 2) Inference on val set

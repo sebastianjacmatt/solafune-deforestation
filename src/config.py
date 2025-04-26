@@ -5,7 +5,7 @@ CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
 
 # Optimizer
 OPTIMIZER = "adamw"
-LEARNING_RATE_OPT = 1e-4
+LEARNING_RATE_OPT = 1e-3
 WEIGHT_DECAY = 1e-2
 
 # Scheduler
@@ -24,7 +24,7 @@ ETA_D = 0.01
 ETA_P = 0.01
 GAMMA=0.5
 N_MH_STEPS=2
-M_SAMPLES=1
+M_SAMPLES=3
 
 
 # Object-Based Augmentation configuartions
@@ -37,7 +37,7 @@ MAX_EXTRACT_TRIES = 5            # Number of exctracting object tries before mov
 
 
 
-TESTING = True # set to False for training
+TESTING = False # set to False for training
 
 if TESTING:
     EPOCHS = 2
@@ -58,7 +58,7 @@ if TESTING:
     NUM_SAMPLE_INDICIES = 2 # Number of sample indicies (train / val), default: 176, else less for testing
     NUM_EVAL_INDICIES = 2   # Number of eval indicie, default: 118, else less for testing
 else:
-    EPOCHS = 50
+    EPOCHS = 30
 
     # Batch sizes
     BATCH_SIZE_TRAIN = 4

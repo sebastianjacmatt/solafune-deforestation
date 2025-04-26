@@ -291,7 +291,12 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
     Returns:
         torch.nn.Module: The trained model.
     """
-      
+
+    best_val_f1 = 0.0
+    best_model_state = None
+    patience = 5
+    counter = 0
+        
     model.to(device)
     # Dual variable for primal-dual updates
     gamma = GAMMA
@@ -335,6 +340,7 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
         train_f1 = smp.metrics.f1_score(
             torch.tensor(train_tp), torch.tensor(train_fp), torch.tensor(train_fn), torch.tensor(train_tn)
         )
+        print(f"Gamma: {gamma}")
         print(f"Training Loss: {train_loss:.4f}, Training F1: {train_f1:.4f}")
 
         # Validation loop
@@ -368,6 +374,18 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
 
         if scheduler:
             scheduler.step(epoch)
+        
+        # Early stopping check
+        if val_f1 > best_val_f1:
+            best_val_f1 = val_f1
+            best_model_state = model.state_dict()  # Save best model weights
+            counter = 0
+        else:
+            counter += 1
+            if counter >= patience:
+                print(f"Early stopping triggered at epoch {epoch+1}")
+                model.load_state_dict(best_model_state)  # Restore best model
+                break
 
     return model
 
@@ -414,7 +432,7 @@ def hyperparameter_tuning():
 
         # Train the model
         trained_model = invariance_constrained_fit(
-            model, train_loader, val_loader, optimizer, scheduler, num_epochs=3, device="cuda"
+            model, train_loader, val_loader, optimizer, scheduler, num_epochs=5, device="cuda"
         )
 
         # Evaluate validation loss
