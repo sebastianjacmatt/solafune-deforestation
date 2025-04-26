@@ -61,7 +61,7 @@ These methods were adapted and integrated into our preprocessing and training pi
 <pre>
 .
 ├── data                           # Contains all input data for training and evaluation
-│   ├── background_images/         # Background-only satellite image(s), a separate set for OBA 
+│   ├── background_images_set_separate/   # Background-only satellite image(s), a separate set for OBA 
 │   ├── evaluation_images/         # Unlabeled images used for model evaluation or testing
 │   ├── train_images/              # Original satellite images for training
 │   ├── train_masks/               # Ground truth segmentation masks for training images
