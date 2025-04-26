@@ -45,21 +45,12 @@ class IRModel(pl.LightningModule):
         self.encoder = self.model.encoder
         self.decoder = self.model.decoder
         self.segmentation_head = self.model.segmentation_head
-        self.T_psi = torch.jit.script(T_PSI)
-
+        self.T_psi = T_PSI
         self.use_ir = use_ir
 
-    def _checkpointed_encoder(self, x):
-        return self.encoder(x)
-
-    def _checkpointed_decoder(self, feats):
-        return self.decoder(feats)
 
     def forward(self, x):
-        """feats = checkpoint(self._checkpointed_encoder, x, use_reentrant=False)
-        decoded = checkpoint(self._checkpointed_decoder, feats, use_reentrant=False)
-        logits = self.segmentation_head(decoded)
-        return logits"""
+        
         return self.model(x)
 
     def shared_step(self, batch, stage):
@@ -126,11 +117,9 @@ class IRModel(pl.LightningModule):
         mask_d1 = batch["domains"][0]["mask"]
         mask_d2 = batch["domains"][1]["mask"]
 
-        # Compute logits and encoder outputs
-        with torch.no_grad():
-            feats_d1 = self._to_feature_list(self.encoder(image_d1))
-            feats_d2 = self._to_feature_list(self.encoder(image_d2))
-        
+       
+        feats_d1 = self._to_feature_list(self.encoder(image_d1))
+        feats_d2 = self._to_feature_list(self.encoder(image_d2))
         logits_d1 = self.segmentation_head(self.decoder(feats_d1))
         logits_d2 = self.segmentation_head(self.decoder(feats_d2))
         
@@ -185,10 +174,11 @@ class IRModel(pl.LightningModule):
         w = torch.rand(z.size(0), 1, 1, 1, device=z.device)
         delta = z_prime - z
 
-        #with torch.amp.autocast(device_type="cuda" if torch.cuda.is_available() else "cpu"):
+        #TODO:with torch.amp.autocast(device_type="cuda" if torch.cuda.is_available() else "cpu"):
         z_interp = z + w * self.T_psi(delta)
-        feats[-1] = z_interp
-        logits_interp = self.segmentation_head(self.decoder(feats))
+        feats_mod = feats.copy()
+        feats_mod[-1] = z_interp
+        logits_interp = self.segmentation_head(self.decoder(feats_mod))
         
         loss_cls = self.dice_loss_fn(logits_interp, y) + \
             self.bce_loss_fn(logits_interp, y)
@@ -196,7 +186,7 @@ class IRModel(pl.LightningModule):
         z_w1 = z + self.T_psi(delta)
         l2_loss = F.mse_loss(z_w1, z_prime)
 
-        #del z, z_prime, delta, z_interp, logits_interp, z_w1
+        #TODO:del z, z_prime, delta, z_interp, logits_interp, z_w1
         return loss_cls + l2_loss
 
     def IoU_out(self, loss, logits_mask, mask):
