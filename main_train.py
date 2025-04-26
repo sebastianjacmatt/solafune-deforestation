@@ -23,17 +23,22 @@ from postprocess import PostProcess
 torch.cuda.empty_cache()
 torch.set_float32_matmul_precision("high")
 
+
+
 def main():
     # 0) Hyperparameter tuning for invariance constrained learning
     # Best Configuration:
-    #'learning_rate': 0.001, 'gamma': 0.1, 'epsilon': 0.01, 'eta_p': 0.001, 'eta_d': 0.001
+    #{'learning_rate': 0.001, 'gamma': 0.5, 'epsilon': 0.05, 'eta_p': 0.01, 'eta_d': 0.01}
+
     """
     print("Tuning began")
     hyperparameter_tuning()
     """
+
     
     # 1) Train
     model, train_loader, val_loader = train_model(use_oba=False, use_icl=False, use_ir=True)
+
 
 
     # 2) Inference on val set
@@ -47,6 +52,7 @@ def main():
     # 4) Postprocess (detect polygons, generate JSON)
     post = PostProcess(
         pred_dir=VAL_PRED_DIR,
+        test_pred_dir=TEST_PRED_DIR,
         score_thresh=SCORE_THRESH,
         min_area=MIN_AREA,
         save_path=SUBMISSION_SAVE_PATH,

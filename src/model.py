@@ -11,7 +11,7 @@ from timm.scheduler import create_scheduler_v2
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(os.path.join(project_root, "src"))
 
-from config import EPOCHS, CLASS_NAMES, IR_LAMBDA, T_PSI
+from config import EPOCHS, CLASS_NAMES, OPTIMIZER, LEARNING_RATE_OPT, WEIGHT_DECAY, SCHEDULER, MIN_LEARNING_RATE, WARMUP_LEARNING_RATE, IR_LAMBDA, T_PSI
 
 class Model(pl.LightningModule):
     """
@@ -271,17 +271,17 @@ class Model(pl.LightningModule):
         """
         optimizer = create_optimizer_v2(
             self.parameters(),
-            opt="adamw",
-            lr=1e-4,
-            weight_decay=1e-2,
+            opt=OPTIMIZER,
+            lr=LEARNING_RATE_OPT,
+            weight_decay=WEIGHT_DECAY,
             filter_bias_and_bn=True
         )
         scheduler, _ = create_scheduler_v2(
             optimizer,
-            sched="cosine",
+            sched=SCHEDULER,
             num_epochs=EPOCHS,
-            min_lr=0.0,
-            warmup_lr=1e-5,
+            min_lr=MIN_LEARNING_RATE,
+            warmup_lr=WARMUP_LEARNING_RATE,
             warmup_epochs=0,
             warmup_prefix=False,
             step_on_epochs=True,

@@ -213,37 +213,37 @@ class OBAValDataset(Dataset):
         return len(self.image_paths)
     
     def __getitem__(self, idx):
-        # 1) Load base image & mask
+        # Load base image & mask
         image = load_image(self.image_paths[idx])  # (1024,1024,12)
         mask  = load_mask(self.mask_paths[idx])    # (1024,1024, 4)
         sample_extra = {}
 
-        # 2) Decide whether to use a background image instead
+        # Decide whether to use a background image instead from separate dataset (for this project de did not)
         if getattr(self, "background_paths", None) and np.random.rand() < self.background_prob:
-            # pick a random background (no pre-existing deforestation mask)
+            # Pick a random background (no pre-existing deforestation mask)
             bg_path = random.choice(self.background_paths)
             cum_image = load_image(bg_path)
-            # start with an empty 4‑channel mask
+            # Start with an empty 4‑channel mask
             H, W, _ = cum_image.shape
             cum_mask = np.zeros((H, W, mask.shape[2]), dtype=mask.dtype)
         else:
             cum_image = image.copy()
             cum_mask  = mask.copy()
 
-        # 3) Maybe apply OBA
+        # Maybe apply OBA given defined probability
         if self.use_oba and np.random.rand() < self.oba_prob:
             for _ in range(self.num_oba_objects):
-                # try to get a valid object up to MAX_EXTRACT_TRIES
+                # Try to get a valid object up to MAX_EXTRACT_TRIES to avoid infinite loop
                 for _try in range(MAX_EXTRACT_TRIES):
                     if self.extract_from_same_image:
-                        # only sample from this image's annotations
+                        # Only sample from this image's annotations if flag is set to True
                         anns = self.annotations_for_image(self.image_paths[idx])
                         if not anns:
                             break
                         ann    = random.choice(anns)
                         src_img = image
                     else:
-                        # sample from the full pool
+                        # Sample from the full pool
                         src_path, ann = random.choice(self.pool)
                         src_img = load_image(src_path)
 
@@ -255,13 +255,13 @@ class OBAValDataset(Dataset):
                     if raw_img is not None:
                         break
                 else:
-                    # failed to get anything this slot
+                    # Failed to get anything this slot
                     continue
 
-                # 3a) object-level augs
+                # Object-level augmentation
                 obj_img, obj_mask = augment_object(raw_img, raw_mask)
 
-                # 3b) paste into cum_image / cum_mask
+                # Paste into cum_image / cum_mask
                 ch = self.class_to_channel(ann["class"])
                 if self.visualize:
                     cum_image, cum_mask, bbox = oba.paste_object(
@@ -277,20 +277,20 @@ class OBAValDataset(Dataset):
                         ch
                     )
 
-            # commit the augmented image+mask
+            # Commit the augmented image + mask
             image, mask = cum_image, cum_mask
 
-        # 4) any further albumentations
+        # Global image albumentations
         if self.augmentations is not None:
             tmp = self.augmentations(image=image, mask=mask)
             image, mask = tmp["image"], tmp["mask"]
 
-        # 5) to channels-first & normalize
+        # To channels-first & normalize
         image = image.transpose(2, 0, 1)
         mask  = mask.transpose(2, 0, 1)
         image = normalize_image(image)
 
-        # 6) return
+        # Return
         sample = {
             "image":      image,
             "mask":       mask,
