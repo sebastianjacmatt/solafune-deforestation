@@ -5,7 +5,7 @@ CLASS_NAMES = ["grassland_shrubland", "logging", "mining", "plantation"]
 
 # Optimizer
 OPTIMIZER = "adamw"
-LEARNING_RATE_OPT = 1e-4
+LEARNING_RATE_OPT = 1e-3
 WEIGHT_DECAY = 1e-2
 
 # Scheduler
@@ -24,7 +24,7 @@ ETA_D = 0.01
 ETA_P = 0.01
 GAMMA=0.5
 N_MH_STEPS=2
-M_SAMPLES=1
+M_SAMPLES=3
 
 
 # Object-Based Augmentation configuartions
@@ -37,7 +37,7 @@ MAX_EXTRACT_TRIES = 10            # Number of exctracting object tries before mo
 
 
 
-TESTING = True # set to False for training
+TESTING = False # set to False for training
 
 if TESTING:
     EPOCHS = 2
