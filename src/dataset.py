@@ -44,11 +44,9 @@ class TrainValDataset(Dataset):
         image = load_image(self.image_paths[idx])  # shape: (1024, 1024, 12)
         mask = load_mask(self.mask_paths[idx])    # shape: (1024, 1024, 4)
 
-        # Albumentations expects dict with keys = ["image", "mask"]
         sample = {"image": image, "mask": mask}
         if self.augmentations is not None:
             sample = self.augmentations(**sample)  # apply aug
-        # sample["image"] = (H, W, C), sample["mask"] = (H, W, 4)
 
         # Put the channels first
         sample["image"] = sample["image"].transpose(2, 0, 1)
@@ -111,21 +109,21 @@ class OBAValDataset(Dataset):
 
         Parameters:
             data_root : Path-like
-                Root directory of the dataset. Expects subfolders `train_images/` and `train_masks/`.
+                Root directory of the dataset. Expects subfolders 'train_images/' and 'train_masks/'.
 
             sample_indices : Sequence of int
-                List of indices indicating which `train_{i}.tif` and `train_{i}.npy` files to load.
+                List of indices indicating which 'train_{i}.tif' and 'train_{i}.npy' files to load.
 
             annotations_path : Path-like
-                Path to the JSON file containing polygon annotations under `"images"`.
+                Path to the JSON file containing polygon annotations under '"images"'.
 
             background_root : Path-like, optional (default=None)
                 Directory of additional images to use as background canvases when
-                `background_prob` > 0. If None, only original images are used.
+                'background_prob' > 0. If None, only original images are used.
 
             background_prob : float, default=0.3
                 Probability of replacing the original background with a random image
-                from `background_root` before pasting objects.
+                from 'background_root' before pasting objects.
 
             extract_from_same_image : bool, default=False
                 If True, objects are always cut from the same image being augmented.
@@ -142,7 +140,7 @@ class OBAValDataset(Dataset):
                 only the original image and mask.
 
             visualize : bool, default=False
-                If True, records each pasted object's bounding box in `sample["oba_bbox"]`
+                If True, records each pasted object's bounding box in 'sample["oba_bbox"]'
                 for visualization.
 
             num_oba_objects : int, default=1

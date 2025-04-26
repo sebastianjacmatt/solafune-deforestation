@@ -13,10 +13,9 @@ sys.path.append(os.path.join(project_root, "src/utils"))
 
 from global_paths import DATASET_PATH
 
-train_file_names = [f"train_{i}.tif" for i in range(176)]  # train_0.tif ~ train_175.tif
+train_file_names = [f"train_{i}.tif" for i in range(176)]  # train_0.tif -> train_175.tif
 class_names = ["grassland_shrubland", "logging", "mining", "plantation"]
 
-# Ensure DATASET_PATH is a Path object before using "/"
 DATASET_PATH = Path(DATASET_PATH)  # Convert string to Path
 
 mask_save_dir = DATASET_PATH / "train_masks"
