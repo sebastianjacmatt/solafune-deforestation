@@ -18,7 +18,7 @@ utils_root = os.path.abspath(os.path.join(src_root, "utils/"))
 sys.path.append(os.path.join(utils_root, "object_based_augmentation"))
 
 from data_utils import load_image, load_mask, normalize_image
-from config import NUM_EVAL_INDICIES, CLASS_NAMES, MAX_EXTRACT_TRIES
+from config import NUM_EVAL_INDICIES, CLASS_NAMES, MAX_EXTRACT_TRIES, CHANNELS
 import oba as oba
 from object_augmentation import augment_object
 
@@ -68,7 +68,7 @@ class TrainValDataset(Dataset):
     
         # If using IR, split the image into different domains
         if self.use_ir:
-            domain_samples = domain_image_split(image, mask, channels={[1,2,3],[4,5,6]})
+            domain_samples = domain_image_split(image, mask, CHANNELS)
             # split bands into seperate samples of 12-band padded images            
             sample = {
                 "domains": domain_samples,
@@ -300,7 +300,7 @@ class OBAValDataset(Dataset):
 
         # If using IR, split the image into different domains
         if self.use_ir:
-            domain_samples = domain_image_split(image, mask, channels={[1,2,3],[4,5,6]}) 
+            domain_samples = domain_image_split(image, mask, CHANNELS) 
             sample = {
                 "domains": domain_samples,
                 "image_path" : str(self.image_paths[idx]),
