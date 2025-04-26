@@ -50,7 +50,7 @@ def visualize_both_samples(original_dataset, oba_dataset, index=0):
     sample_orig = original_dataset[index]
     sample_oba  = oba_dataset[index]
 
-    # extract any OBA bboxes (list or None)
+    # Extract any OBA bboxes (list or None)
     bboxes = sample_oba.get("oba_bbox", None)
 
     # Make RGB panels, ignoring new objects for the OBA image
