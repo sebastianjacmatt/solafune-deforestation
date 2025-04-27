@@ -256,16 +256,18 @@ def train_model(use_oba=False, use_icl=False, use_ir=False):
     else:
         train_loader, val_loader = prepare_dataloaders(get_augmentations())
     
+    trainer = get_trainer()
+    
     if use_ir:
-
         train_loader, val_loader = prepare_dataloaders(get_augmentations(), use_ir=True)
         model = IRModel(use_ir=True)
+        trainer = ir_get_trainer()
     elif use_ir & use_oba:
         train_loader, val_loader = prepare_dataloaders_oba(get_augmentations(), use_ir=True)
         model = IRModel(use_ir=True)
+        trainer = ir_get_trainer()
     else: 
         model = Model()
-    trainer = get_trainer()
 
     if use_icl:
         optimizer_schedulers = model.configure_optimizers()
