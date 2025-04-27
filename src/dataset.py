@@ -17,6 +17,8 @@ sys.path.append(os.path.join(src_root, "utils"))
 utils_root = os.path.abspath(os.path.join(src_root, "utils/"))
 sys.path.append(os.path.join(utils_root, "object_based_augmentation"))
 
+sys.path.append(os.path.join(project_root, "src/utils/object_based_augmentation"))
+
 from data_utils import load_image, load_mask, normalize_image
 from config import NUM_EVAL_INDICIES, CLASS_NAMES, MAX_EXTRACT_TRIES, CHANNELS
 import oba as oba

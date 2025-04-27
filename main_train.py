@@ -12,7 +12,7 @@ sys.path.append(os.path.join(src_root, "utils"))
 utils_root = os.path.abspath(os.path.join(src_root, "utils/"))
 sys.path.append(os.path.join(utils_root, "object_based_augmentation"))
 
-from train_utils import train_model, hyperparameter_tuning
+from train_utils import train_model
 from global_paths import VAL_PRED_DIR, TEST_PRED_DIR, SUBMISSION_SAVE_PATH, DATASET_PATH
 from config import SCORE_THRESH, MIN_AREA, NUM_WORKERS_TEST, BATCH_SIZE_TEST
 from dataset import TestDataset
@@ -37,7 +37,7 @@ def main():
     """
 
     # 1) Train
-    model, train_loader, val_loader = train_model(use_oba=False, use_icl=False, use_ir=True)
+    model, train_loader, val_loader = train_model(use_oba=False, use_icl=False, use_ir=False)
 
     # 2) Inference on val set
     run_inference(model, val_loader, VAL_PRED_DIR)
