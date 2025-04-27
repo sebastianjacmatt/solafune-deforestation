@@ -108,28 +108,70 @@ These methods were adapted and integrated into our preprocessing and training pi
 └── main_train.py                 # Entry point script to train the model
 </pre>
 
-### Where the Research Papers are Impleneted
+### Description of Research Paper Implementation and Integration
 
-#### Object-Based Augmentation
+#### Object-Based Augmentation (OBA)
 
-The Object-Based Augmentation (OBA) pipeline is primarily implemented in the `object_based_augmentation` folder under `src/utils`.
+**Method description:**  
+Object-Based Augmentation (OBA) is a data augmentation technique where segmented foreground objects (e.g., plantations, grassland, mining) are extracted from satellite imagery and pasted onto new background regions.  
+This increases object diversity and improves the model’s ability to generalize to unseen spatial patterns, particularly in data-scarce settings.
 
-- **`oba.py`** contains the main OBA class and handles object extraction, mask alignment, and placement logic.
-- **`object_augmentation.py`** performs visual transformations like rotation, flipping, and blending when objects are pasted into new backgrounds.
+The method ensures semantic consistency by preventing pasted objects from overlapping existing deforestation classes. Random transformations (such as flipping and rotation) are applied to the objects during placement to further enhance variability.
 
-To integrate OBA into training, a dedicated dataset class is defined in `dataset.py`. This class handles the loading of OBA-prepared samples and ensures compatibility with the training loop. The pipeline is designed to be modular and easy to toggle via a simple boolean flag `use_oba` in the main script, which switches between standard and OBA-enabled dataloaders.
+**Implementation:**  
+OBA is implemented in the `src/utils/object_based_augmentation/` directory:
+
+- **`oba.py`**: Defines the `OBA` class, handling object extraction, mask alignment, placement, and overlap checks.
+- **`object_augmentation.py`**: Applies visual transformations (rotation, flipping, blending) to objects before pasting.
+
+OBA is integrated into the training pipeline via a custom dataset class in **`dataset.py`**, which mixes real and OBA-augmented samples during training.
+
+The OBA pipeline is modular and can be activated by setting the `use_oba` flag in the main training script. This switches the dataloader to include synthetic OBA samples automatically.
 
 
-#### Invariance-Constrained Learning
-The Automatic data augmentation via Invariance-Constrained Learning pipeline is implemented mainly in `src/invariance_constrained.py`
-The two primary functions `independent_mh_sampler.py` (1) and `primal_dual_augmentation.py` (2) corresponds with algorithms 1 and 2 from the paper. The functions are used in `src/utils/train.utils`  with flags. If flag is activated, augmentations in the dataloader will be turned off, and a separate fit-function `invariance_constrained_fit` will instead be run. This will train the model using the method from the paper.
+#### Invariance-Constrained Learning (ICL)
 
-#### Interpolation Robustness
-The Applied Interpolation Robustness pipeline is mainly implemented in a seperate model `src/ir_model.py` as it does extensive changes to our training forward pass. The main equations of Interpolation Robustness can be found within the return statement of `src/ir_model.interpolation_step()` (3), and the `src/ir_model.int_loss()` function (4). Here we also use Tψ (defined and imported from `config.py`). The papers equations are adapted to the specific task and do not exactly follow the original paper, though they aim to stay as faithful as possible. The segmentation task is treated as pixel-wise classification.
-In addition to defining a new model we add flags to `src/main_train.py`,`src/train_utils.py`. We add some conditional logic following the flags for dataloading two domained images in`src/dataset.py` and some helper functions for creating images of different domains in `src/data_utils.py`. Currently the channels of the image are handled as domains, with the out of domain channels being padded with either zeroing or repititon, se `src/data_utils.domain_image_split` for more info.
+**Method description:**  
+Invariance-Constrained Learning (ICL) is an automatic data augmentation approach where augmentations are selected dynamically based on how well the model maintains semantic consistency after transformations.  
+Instead of applying fixed augmentations, the method uses a Monte Carlo Markov Chain (MCMC) sampler to propose and accept/reject augmentations based on their effect on the model's loss, promoting invariance to transformations that the model initially struggles with.
 
-**Additional information about running Interpolation Robustness**
-The pipeline is resource-intensive. It is recommended to set PIN_MEMORY = False, as interpolation can significantly increase memory usage. Additionally, lowering other parameters in src/config.py is advised to help prevent out-of-memory issues.
+**Implementation:**  
+The ICL pipeline is mainly implemented in the `src/invariance_constrained.py` file:
+
+- **`independent_mh_sampler.py`**: Implements the Metropolis-Hastings-based sampling of augmentations (corresponds to Algorithm 1 in the paper).
+- **`primal_dual_augmentation.py`**: Defines the primal-dual optimization loop to enforce invariance constraints (corresponds to Algorithm 2 in the paper).
+
+ICL is integrated into the training pipeline inside `src/utils/train_utils.py`:
+- If the `use_icl` flag is enabled, standard augmentations in the dataloader are turned off.
+- A specialized training function `invariance_constrained_fit` is used instead of the default fit function, applying the ICL method during training.
+
+
+#### Interpolation Robustness (IR)
+
+**Method description:**  
+Interpolation Robustness (IR) addresses domain shift by encouraging the model to generalize between interpolated representations of different domains. In this project, spectral bands are treated as domains. The interpolation process is adapted to segmentation tasks, treating them as pixel-wise classification.
+
+**Implementation:**  
+The IR pipeline is primarily implemented in a separate model in `src/ir_model.py`:
+- **`interpolation_step()`**: Computes the forward pass using interpolated features between two domain-specific images (adapted from the original paper's equations).
+- **`int_loss()`**: Calculates the interpolation loss, combining classification and regularization terms.
+
+Key components and modifications:
+- **`Tψ`** (learned interpolation function) is defined and imported from `config.py`.
+- The interpolation equations are adapted for the segmentation task but follow the spirit of the original Interpolation Robustness method.
+
+Integration into the training code:
+- New flags are added to `src/main_train.py` and `src/train_utils.py` to enable or disable IR during training.
+- Conditional dataloading logic is introduced in `src/dataset.py` to load two domain-specific images per sample.
+- Helper functions for creating domain-specific images are defined in `src/data_utils.py` (see `domain_image_split()`).
+
+Currently, image channels are treated as separate domains. Out-of-domain channels are handled by padding—either with zeros or repetition—to maintain consistent input dimensions.
+
+**Additional information about running Interpolation Robustness:**  
+The IR pipeline is resource-intensive:
+- Set `PIN_MEMORY = False` in your DataLoader settings to reduce memory pressure.
+- It is also recommended to lower other memory-related parameters in `src/config.py` to avoid out-of-memory (OOM) issues during training.
+
 
 
 ## Setting up the environment
