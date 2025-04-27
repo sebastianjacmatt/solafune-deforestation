@@ -82,6 +82,7 @@ These methods were adapted and integrated into our preprocessing and training pi
 │   │   ├── data_exploration       # Scripts to explore and visualize input data
 │   │   │   ├── convert_to_geojson.py       # Converts dictionaries in specified format to GeoJSON
 │   │   │   ├── data_visualization.py       # Plots about input images and spectral bands
+|   |   |   |── ir_visualization.py         # Plots domain split image
 │   │   │   ├── oba_visualization.py        # Visualization of OBA-pipeline output
 │   │   │   └── plot_class_distribution.py  # Plots class distribution on training set
 │   │   └── mask_generation        # Tools to create and manipulate segmentation masks
@@ -101,6 +102,7 @@ These methods were adapted and integrated into our preprocessing and training pi
 │   ├── dataset.py                # Custom PyTorch Dataset class for training and validation
 │   ├── invariance_constrained.py # Model training with invariance constraints (if used)
 │   ├── model.py                  # Model architecture and forward logic
+|   |── ir_model.py               # Model with (IR) spesific logic            
 │   └── postprocess.py            # Post-processing of raw predictions (e.g., thresholding)
 ├── ...                           # Other project-level files (e.g., .gitignore, enviorments)
 └── main_train.py                 # Entry point script to train the model
@@ -123,7 +125,11 @@ The Automatic data augmentation via Invariance-Constrained Learning pipeline is 
 The two primary functions `independent_mh_sampler.py` (1) and `primal_dual_augmentation.py` (2) corresponds with algorithms 1 and 2 from the paper. The functions are used in `src/utils/train.utils`  with flags. If flag is activated, augmentations in the dataloader will be turned off, and a separate fit-function `invariance_constrained_fit` will instead be run. This will train the model using the method from the paper.
 
 #### Interpolation Robustness
-TODO:
+The Applied Interpolation Robustness pipeline is mainly implemented in a seperate model `src/ir_model.py` as it does extensive changes to our training forward pass. The main equations of Interpolation Robustness can be found within the return statement of `src/ir_model.interpolation_step()` (3), and the `src/ir_model.int_loss()` function (4). Here we also use Tψ (defined and imported from `config.py`). The papers equations are adapted to the specific task and do not exactly follow the original paper, though they aim to stay as faithful as possible. The segmentation task is treated as pixel-wise classification.
+In addition to defining a new model we add flags to `src/main_train.py`,`src/train_utils.py`. We add some conditional logic following the flags for dataloading two domained images in`src/dataset.py` and some helper functions for creating images of different domains in `src/data_utils.py`. Currently the channels of the image are handled as domains, with the out of domain channels being padded with either zeroing or repititon, se `src/data_utils.domain_image_split` for more info.
+
+**Additional information about running Interpolation Robustness**
+The pipeline is resource-intensive. It is recommended to set PIN_MEMORY = False, as interpolation can significantly increase memory usage. Additionally, lowering other parameters in src/config.py is advised to help prevent out-of-memory issues.
 
 
 ## Setting up the environment

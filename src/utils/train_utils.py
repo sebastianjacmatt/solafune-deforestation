@@ -8,6 +8,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, TQ
 from pytorch_lightning.loggers import TensorBoardLogger
 import torch
 import segmentation_models_pytorch as smp
+from pytorch_lightning.callbacks import EarlyStopping
 
 from torch.utils.data import DataLoader
 from dataset import TrainValDataset, OBAValDataset
@@ -18,6 +19,7 @@ from config import (
     NUM_WORKERS_TRAIN, NUM_WORKERS_VAL, PIN_MEMORY, PERSISTNAT_WORKERS,
     BACKGROUND_PROB, EXTRACT_FROM_SAME_IMAGE, OBA_PROB, NUM_OBA_OBJECTS
 )
+from src.ir_model import IRModel
 from src.utils.global_paths import (
     DATASET_PATH, TRAIN_OUTPUT_DIR, TRAIN_ANNOTATIONS_PATH, SEPARATE_BACKGROUND_IMAGES
 )
@@ -85,13 +87,13 @@ def get_augmentations_invariance():
         A.RandomRotate90(p=1),
         A.RandomBrightnessContrast(p=1)
     ])
-
+  
 def random_crop_icl():
         return A.Compose([
             A.RandomCrop(p=1, width=512, height=512)
                ])
-
-def prepare_dataloaders(augmentation):
+  
+def prepare_dataloaders(augmentation, use_ir=False):
     """
     Prepares and returns PyTorch DataLoaders for training and validation datasets.
 
@@ -111,7 +113,8 @@ def prepare_dataloaders(augmentation):
     train_dataset = TrainValDataset(
         data_root=DATASET_PATH,
         sample_indices=train_indices,
-        augmentations=augmentation
+        augmentations=augmentation,
+        use_ir=use_ir
     )
     val_dataset = TrainValDataset(
         data_root=DATASET_PATH,
@@ -136,6 +139,50 @@ def prepare_dataloaders(augmentation):
         persistent_workers=PERSISTNAT_WORKERS,
     )
     return train_loader, val_loader
+
+def ir_get_trainer():
+    """
+    Configures and returns a PyTorch Trainer spesific for Interpolation Robustness.
+
+    Includes Checkpoint, learning rate monitor,
+    progress bar and tensor board logger.
+
+    Returns:
+        pytorch_lightning.Trainer: A configured Trainer primed for training.
+    """
+    seed_everything(SEED)
+
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=TRAIN_OUTPUT_DIR, filename="best_f1_05",
+        save_weights_only=True, save_top_k=1,
+        monitor="val/f1", mode="max", save_last=False,
+    )
+    lr_monitor   = LearningRateMonitor(logging_interval="step")
+    progress_bar = TQDMProgressBar(leave=True)
+    early_stop   = EarlyStopping(
+        monitor="val/f1",
+        mode="max",
+        patience=3,
+        verbose=True,
+        strict=False,
+    )
+    tb_logger = TensorBoardLogger(save_dir=TRAIN_OUTPUT_DIR, name=None)
+
+    trainer = Trainer(
+        max_epochs=EPOCHS,
+        callbacks=[checkpoint_callback, lr_monitor, progress_bar, early_stop],  # include it here
+        logger=[tb_logger],
+        precision="16-mixed",
+        deterministic=True,
+        benchmark=False,
+        sync_batchnorm=False,
+        check_val_every_n_epoch=1,
+        default_root_dir=".",
+        accelerator="gpu",
+        devices=1,
+        log_every_n_steps=1,
+    )
+    return trainer
 
 def get_trainer():
     """
@@ -178,8 +225,7 @@ def get_trainer():
     )
     return trainer
 
-
-def train_model(use_oba=False, use_icl=False):
+def train_model(use_oba=False, use_icl=False, use_ir=False):
     """
     Runs the training loop for the model
     The function prepares the dataloader, initializes the model and trainer and runs a fit function.
@@ -190,11 +236,16 @@ def train_model(use_oba=False, use_icl=False):
                         object-based augmentations to the training samples.
         use_icl (bool): If True, trains the model using the invariance-constrained 
                         learning approach with a primal-dual optimization strategy.
+        use_ir (bool): If True, trains the model using Interpolation Robustness
+                         as a regularization method, works with or without OBA. 
     Returns:
         model (torch.nn.Module): The trained model.
         train_loader (torch.utils.data.DataLoader): DataLoader for the training dataset.
         val_loader (torch.utils.data.DataLoader): DataLoader for the validation dataset.
     """
+    
+    if use_icl and use_ir:
+        raise ValueError("Cannot use both use_icl and use_ir at the same time.")
     if use_oba & use_icl:
         train_loader, val_loader = prepare_dataloaders_oba(random_crop_icl())
     elif use_oba:
@@ -203,10 +254,19 @@ def train_model(use_oba=False, use_icl=False):
         train_loader, val_loader = prepare_dataloaders(random_crop_icl())
     else:
         train_loader, val_loader = prepare_dataloaders(get_augmentations())
-
-
-    model = Model()
+    
     trainer = get_trainer()
+    
+    if use_ir:
+        train_loader, val_loader = prepare_dataloaders(get_augmentations(), use_ir=True)
+        model = IRModel(use_ir=True)
+        trainer = ir_get_trainer()
+    elif use_ir & use_oba:
+        train_loader, val_loader = prepare_dataloaders_oba(get_augmentations(), use_ir=True)
+        model = IRModel(use_ir=True)
+        trainer = ir_get_trainer()
+    else: 
+        model = Model()
 
     if use_icl:
         optimizer_schedulers = model.configure_optimizers()
@@ -224,7 +284,7 @@ def train_model(use_oba=False, use_icl=False):
     return model, train_loader, val_loader
 
 
-def prepare_dataloaders_oba(augmentation):
+def prepare_dataloaders_oba(augmentation, use_ir=False):
     """
     Prepares PyTorch DataLoaders using the OBA dataset for training and the original dataset for validation.
 
@@ -247,7 +307,8 @@ def prepare_dataloaders_oba(augmentation):
         use_oba=True,
         oba_prob=OBA_PROB,
         visualize=False,
-        num_oba_objects=NUM_OBA_OBJECTS
+        num_oba_objects=NUM_OBA_OBJECTS,
+        use_ir=use_ir
     )
 
     val_dataset = TrainValDataset(

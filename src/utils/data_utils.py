@@ -1,7 +1,9 @@
 import sys
 import os
+from typing import Dict, List
 import numpy as np
 import tifffile
+import torch
 
 from config import MEAN, STD
 
@@ -42,3 +44,95 @@ def normalize_image(image):
     mean_arr = np.array(MEAN, dtype=np.float32).reshape(12, 1, 1)
     std_arr = np.array(STD, dtype=np.float32).reshape(12, 1, 1)
     return (image - mean_arr) / std_arr
+
+# Methods related to Interpolation Robustness (IR)
+def pad_image(
+    image: np.ndarray,
+    keep_channels: list[int],
+    padding: str = "repetition",
+    leave_one_out: bool = False,
+) -> np.ndarray:
+    """
+    Overwrite every spectral band *except* those in `keep_channels`.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        A 12-band image, shape (12, H, W) **or** (H, W, 12).
+    keep_channels : list[int]
+        Channel indices (0-based) to preserve.
+    padding : {"zeroing", "repetition"}, default "repetition"
+        * "zeroing"    – set discarded bands to 0  
+        * "repetition" – copy kept bands cyclically into discarded bands
+    leave_one_out : bool, default False
+        If True, randomly drop one band from keep_channels (for DG augmentation).
+
+    Returns
+    -------
+    np.ndarray  (12, H, W)  same dtype as input.
+    """
+    assert padding in {"zeroing", "repetition"}, f"Invalid padding method: {padding}"
+
+    # Ensure (C, H, W) layout
+    if image.shape[0] != 12 and image.shape[-1] == 12:
+        image = image.transpose(2, 0, 1)
+
+    out = image.copy()
+    
+    # Optionally drop one random kept channel
+    if leave_one_out and len(keep_channels) > 1:
+        drop_idx = np.random.choice(keep_channels)
+        keep_channels = [ch for ch in keep_channels if ch != drop_idx]
+
+    discard = [i for i in range(12) if i not in keep_channels]
+
+    if padding == "zeroing":
+        out[discard] = 0.0
+    elif padding == "repetition":
+        for idx, ch in enumerate(discard):
+            ref_idx = keep_channels[idx % len(keep_channels)]
+            out[ch] = out[ref_idx]
+    else:
+        pass  # Nothing happens if invalid padding (assert above should already catch this)
+
+    return out
+
+
+
+def domain_image_split(
+    image: np.ndarray,
+    mask: np.ndarray,
+    channel_groups: List[List[int]],
+    padding: str = "repetition",
+) -> List[Dict[str, torch.Tensor]]:
+    """
+    Produce one 12-band sample per spectral domain.
+
+    Each sub-list in `channel_groups` defines a *domain*; its channels keep
+    real data, every other band is padded via `padding`.
+
+    Returns
+    -------
+    list of dict
+        [
+          {"image": torch.FloatTensor(12, H, W),
+           "mask" : torch.FloatTensor(4 , H, W)},
+          ...
+        ]
+    """
+    # standardise layout once
+    if image.shape[0] != 12 and image.shape[-1] == 12:
+        image = image.transpose(2, 0, 1)
+    if mask.shape[0] != 4 and mask.shape[-1] == 4:
+        mask = mask.transpose(2, 0, 1)
+
+    samples = []
+    for grp in channel_groups:
+        padded = pad_image(image, grp, padding=padding)
+        samples.append({
+            "image": torch.from_numpy(padded.copy()),
+            "mask" : torch.from_numpy(mask.copy()),
+        })
+    return samples
+
+
