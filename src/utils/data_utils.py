@@ -48,8 +48,9 @@ def normalize_image(image):
 # Methods related to Interpolation Robustness (IR)
 def pad_image(
     image: np.ndarray,
-    keep_channels: List[int],
-    padding: str = "zeroing",
+    keep_channels: list[int],
+    padding: str = "repetition",
+    leave_one_out: bool = False,
 ) -> np.ndarray:
     """
     Overwrite every spectral band *except* those in `keep_channels`.
@@ -60,9 +61,11 @@ def pad_image(
         A 12-band image, shape (12, H, W) **or** (H, W, 12).
     keep_channels : list[int]
         Channel indices (0-based) to preserve.
-    padding : {"zeroing", "repetition"}, default "zeroing"
+    padding : {"zeroing", "repetition"}, default "repetition"
         * "zeroing"    – set discarded bands to 0  
-        * "repetition" – copy the first kept band into every discarded band
+        * "repetition" – copy kept bands cyclically into discarded bands
+    leave_one_out : bool, default False
+        If True, randomly drop one band from keep_channels (for DG augmentation).
 
     Returns
     -------
@@ -70,28 +73,37 @@ def pad_image(
     """
     assert padding in {"zeroing", "repetition"}, f"Invalid padding method: {padding}"
 
-    # ensure (C, H, W)
+    # Ensure (C, H, W) layout
     if image.shape[0] != 12 and image.shape[-1] == 12:
         image = image.transpose(2, 0, 1)
 
     out = image.copy()
+    
+    # Optionally drop one random kept channel
+    if leave_one_out and len(keep_channels) > 1:
+        drop_idx = np.random.choice(keep_channels)
+        keep_channels = [ch for ch in keep_channels if ch != drop_idx]
+
     discard = [i for i in range(12) if i not in keep_channels]
 
     if padding == "zeroing":
         out[discard] = 0.0
-    else:  # "repetition"
-        ref = out[keep_channels[0]]
-        for ch in discard:
-            out[ch] = ref
+    elif padding == "repetition":
+        for idx, ch in enumerate(discard):
+            ref_idx = keep_channels[idx % len(keep_channels)]
+            out[ch] = out[ref_idx]
+    else:
+        pass  # Nothing happens if invalid padding (assert above should already catch this)
 
     return out
+
 
 
 def domain_image_split(
     image: np.ndarray,
     mask: np.ndarray,
     channel_groups: List[List[int]],
-    padding: str = "zeroing",
+    padding: str = "repetition",
 ) -> List[Dict[str, torch.Tensor]]:
     """
     Produce one 12-band sample per spectral domain.
