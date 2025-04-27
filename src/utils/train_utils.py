@@ -213,6 +213,30 @@ def train_model(use_oba=False, use_icl=False, use_ir=False):
         train_loader, val_loader = prepare_dataloaders(get_augmentations())
     
     if use_ir:
+        #TODO: Impl warmup training
+        """
+        warmup_epocs = WARMUP_EPOCHS
+        train_loader, val_loader = prepare_dataloaders(get_augmentations(), use_ir=False)
+        model = IRModel(use_ir=False)
+        trainer = get_trainer()
+
+        trainer.fit(
+            model,
+            train_dataloaders=train_loader,
+            val_dataloaders=val_loader,
+        )
+
+        train_loader, val_loader = prepare_dataloaders(get_augmentations(), use_ir=True)
+        model.use_ir = True  # flip flag inside the model, assuming you handle it internally
+        trainer = get_trainer()
+        
+        trainer.fit(
+            model,
+            train_dataloaders=train_loader,
+            val_dataloaders=val_loader,
+        )
+
+        """
         train_loader, val_loader = prepare_dataloaders(get_augmentations(), use_ir=True)
         model = IRModel(use_ir=True)
     elif use_ir & use_oba:

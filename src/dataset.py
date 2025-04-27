@@ -66,7 +66,7 @@ class TrainValDataset(Dataset):
     
         # If using IR, split the image into different domains
         if self.use_ir:
-            domain_samples = domain_image_split(image, mask, CHANNELS)
+            domain_samples = domain_image_split(image, mask, CHANNELS, padding="repetition")
             # split bands into seperate samples of 12-band padded images            
             sample = {
                 "domains": domain_samples,
@@ -298,7 +298,7 @@ class OBAValDataset(Dataset):
 
         # If using IR, split the image into different domains
         if self.use_ir:
-            domain_samples = domain_image_split(image, mask, CHANNELS) 
+            domain_samples = domain_image_split(image, mask, CHANNELS, padding="repetition") 
             sample = {
                 "domains": domain_samples,
                 "image_path" : str(self.image_paths[idx]),

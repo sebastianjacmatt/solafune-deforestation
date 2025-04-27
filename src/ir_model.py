@@ -11,7 +11,8 @@ from timm.scheduler import create_scheduler_v2
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(os.path.join(project_root, "src"))
 
-from config import EPOCHS, CLASS_NAMES, OPTIMIZER, LEARNING_RATE_OPT, WEIGHT_DECAY, SCHEDULER, MIN_LEARNING_RATE, WARMUP_LEARNING_RATE, IR_LAMBDA, T_PSI
+from preprocessing.data_exploration.ir_visualization import plot_domain_split
+from config import EPOCHS, CLASS_NAMES, OPTIMIZER, LEARNING_RATE_OPT, WEIGHT_DECAY, SCHEDULER, MIN_LEARNING_RATE, WARMUP_LEARNING_RATE, IR_LAMBDA, T_PSI, CHANNELS
 
 class IRModel(pl.LightningModule):
     """
@@ -46,7 +47,12 @@ class IRModel(pl.LightningModule):
         self.segmentation_head = self.model.segmentation_head
         self.T_psi = T_PSI
         self.use_ir = use_ir
-
+        
+        self.ir_vis = {
+            "image_d1": None, # the decoded image from domain 1
+            "image_d2": None, # the decoded image from domain 2
+            "image_z1": None, # the decoded image from the decoded interpolated image
+        }
 
     def forward(self, x):
         return self.model(x)
@@ -116,6 +122,10 @@ class IRModel(pl.LightningModule):
         logits_d1      = self.segmentation_head(decoder_out_d1)
         logits_d2      = self.segmentation_head(decoder_out_d2)
         
+        if self.ir_vis["image_d1"] is None and self.ir_vis["image_d2"] is None:
+            self.ir_vis["image_d1"] = logits_d1.detach().cpu()
+            self.ir_vis["image_d2"] = logits_d2.detach().cpu()
+        
         # Compute Dice and BCE losses for both domains
         base_loss_d1 = self.dice_loss_fn(logits_d1, mask_d1) + self.bce_loss_fn(logits_d1, mask_d1)
         base_loss_d2 = self.dice_loss_fn(logits_d2, mask_d2) + self.bce_loss_fn(logits_d2, mask_d2)
@@ -176,6 +186,9 @@ class IRModel(pl.LightningModule):
         decoder_out_z = self.decoder(*z_feats)
         logits_interp = self.segmentation_head(decoder_out_z)
         
+        if self.ir_vis["image_z1"] is None:
+            self.ir_vis["image_z1"] = logits_interp.detach().cpu()
+
         loss_cls = self.dice_loss_fn(logits_interp, y) + \
             self.bce_loss_fn(logits_interp, y)
 
@@ -262,6 +275,23 @@ class IRModel(pl.LightningModule):
         """
         self.shared_epoch_end(self.training_step_outputs, "train")
         self.training_step_outputs.clear()
+        
+        # Save interpolation visualization if available
+        if self.ir_vis["image_d1"] is not None:
+            plot_domain_split(
+                orig=self.ir_vis["image_d1"][0].sigmoid().cpu().numpy(),
+                dom1=self.ir_vis["image_d2"][0].sigmoid().cpu().numpy(),
+                dom2=self.ir_vis["image_z1"][0].sigmoid().cpu().numpy(),
+                channel_groups=CHANNELS,
+                save_path=f"outputs/ir_vis/ir_visualization_epoch_{self.current_epoch}.png",
+                show=False
+            )
+        # reset ir_vis every epoch
+        self.ir_vis = {
+            "image_d1": None,
+            "image_d2": None,
+            "image_z1": None,
+        }
 
     def on_validation_epoch_end(self):
         """
