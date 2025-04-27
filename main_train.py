@@ -12,7 +12,7 @@ sys.path.append(os.path.join(src_root, "utils"))
 utils_root = os.path.abspath(os.path.join(src_root, "utils/"))
 sys.path.append(os.path.join(utils_root, "object_based_augmentation"))
 
-from train_utils import train_model, hyperparameter_tuning
+from train_utils import train_model
 from global_paths import VAL_PRED_DIR, TEST_PRED_DIR, SUBMISSION_SAVE_PATH, DATASET_PATH
 from config import SCORE_THRESH, MIN_AREA, NUM_WORKERS_TEST, BATCH_SIZE_TEST
 from dataset import TestDataset
@@ -26,18 +26,9 @@ torch.set_float32_matmul_precision("high")
 
 
 def main():
-    # 0) Hyperparameter tuning for invariance constrained learning
-    # Best Configuration:
-    #{'learning_rate': 0.001, 'gamma': 0.5, 'epsilon': 0.05, 'eta_p': 0.01, 'eta_d': 0.01}
-
-    """
-    print("Tuning began")
-    hyperparameter_tuning()
-    """
-
     
     # 1) Train
-    model, train_loader, val_loader = train_model(use_oba=False, use_icl=False)
+    model, train_loader, val_loader = train_model(use_oba=False, use_icl=True)
 
 
     # 2) Inference on val set

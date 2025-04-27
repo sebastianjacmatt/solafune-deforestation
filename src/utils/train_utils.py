@@ -195,12 +195,12 @@ def train_model(use_oba=False, use_icl=False):
         train_loader (torch.utils.data.DataLoader): DataLoader for the training dataset.
         val_loader (torch.utils.data.DataLoader): DataLoader for the validation dataset.
     """
-    if use_oba:
+    if use_oba & use_icl:
+        train_loader, val_loader = prepare_dataloaders_oba(random_crop_icl())
+    elif use_oba:
         train_loader, val_loader = prepare_dataloaders_oba(get_augmentations())
     elif use_icl:
         train_loader, val_loader = prepare_dataloaders(random_crop_icl())
-    elif use_oba & use_icl:
-        train_loader, val_loader = prepare_dataloaders_oba(random_crop_icl())
     else:
         train_loader, val_loader = prepare_dataloaders(get_augmentations())
 
@@ -292,7 +292,12 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
     Returns:
         torch.nn.Module: The trained model.
     """
-      
+
+    best_val_f1 = 0.0
+    best_model_state = None
+    patience = 5
+    counter = 0
+        
     model.to(device)
     # Dual variable for primal-dual updates
     gamma = GAMMA
@@ -336,6 +341,7 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
         train_f1 = smp.metrics.f1_score(
             torch.tensor(train_tp), torch.tensor(train_fp), torch.tensor(train_fn), torch.tensor(train_tn)
         )
+        print(f"Gamma: {gamma}")
         print(f"Training Loss: {train_loss:.4f}, Training F1: {train_f1:.4f}")
 
         # Validation loop
@@ -369,80 +375,18 @@ def invariance_constrained_fit(model, train_loader, val_loader, optimizer, sched
 
         if scheduler:
             scheduler.step(epoch)
+        
+        # Early stopping check
+        if val_f1 > best_val_f1:
+            best_val_f1 = val_f1
+            best_model_state = model.state_dict()  # Save best model weights
+            counter = 0
+        else:
+            counter += 1
+            if counter >= patience:
+                print(f"Early stopping triggered at epoch {epoch+1}")
+                model.load_state_dict(best_model_state)  # Restore best model
+                break
 
     return model
-
-from itertools import product
-
-def hyperparameter_tuning():
-    """
-    Perform hyperparameter tuning for invariance_constrained_fit.
-    Updates the relevant values from config.py globally
-    """
-    # Define hyperparameter search space
-    learning_rates = [1e-3]
-    gamma_values = [0.1, 0.5]
-    epsilon_values = [0.01, 0.05]
-    eta_p_values = [0.001, 0.01]
-    eta_d_values = [0.001, 0.01]
-    n_mh_steps = [2]
-
-    # Store the best configuration and its validation loss
-    best_config = None
-    best_val_loss = float("inf")
-
-    # Iterate over all combinations of hyperparameters
-    for lr, gamma, epsilon, eta_p, eta_d, n_mh in product(
-        learning_rates, gamma_values, epsilon_values, eta_p_values, eta_d_values, n_mh_steps
-    ):
-        print(f"Testing configuration: lr={lr}, gamma={gamma}, epsilon={epsilon}, eta_p={eta_p}, eta_d={eta_d}, n_mh={n_mh}")
-
-        # Update global hyperparameters
-        global GAMMA, EPSILON, ETA_P, ETA_D
-        GAMMA = gamma
-        EPSILON = epsilon
-        ETA_P = eta_p
-        ETA_D = eta_d
-        N_MH_STEPS = n_mh
-
-        # Prepare data loaders
-        train_loader, val_loader = prepare_dataloaders(random_crop_icl())
-
-        # Initialize model, optimizer, and scheduler
-        model = Model()
-        optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
-
-        # Train the model
-        trained_model = invariance_constrained_fit(
-            model, train_loader, val_loader, optimizer, scheduler, num_epochs=3, device="cuda"
-        )
-
-        # Evaluate validation loss
-        val_loss = 0.0
-        with torch.no_grad():
-            for batch in val_loader:
-                images = batch["image"].to("cuda")
-                masks = batch["mask"].to("cuda")
-                logits = trained_model(images)
-                loss = model.dice_loss_fn(logits, masks) + model.bce_loss_fn(logits, masks)
-                val_loss += loss.item()
-        val_loss /= len(val_loader)
-
-        print(f"Validation Loss: {val_loss:.4f}")
-
-        # Update the best configuration if the current one is better
-        if val_loss < best_val_loss:
-            best_val_loss = val_loss
-            best_config = {
-                "learning_rate": lr,
-                "gamma": gamma,
-                "epsilon": epsilon,
-                "eta_p": eta_p,
-                "eta_d": eta_d,
-            }
-
-    print("\nBest Configuration:")
-    print(best_config)
-    print(f"Best Validation Loss: {best_val_loss:.4f}")
 

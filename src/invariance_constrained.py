@@ -74,20 +74,22 @@ def primal_dual_augmentation(model, data_batch, G, optimizer, gamma, epsilon=0.0
     batch_size = len(data_batch)
     transformed_losses = []
 
-    for x, y in data_batch:
-        x, y = x.to(device), y.to(device)
-        mh_samples = independent_mh_sampler(model, G, x, y, n_steps = n_mh_steps)
-        selected = random.sample(mh_samples, k=min(m_samples, len(mh_samples)))
+    with torch.no_grad():
 
-        losses = []
-        for g, _ in selected:
-            gx, gy = apply_albumentations(g, x, y) 
-            pred = model(gx.unsqueeze(0))
-            losses.append(
-                model.dice_loss_fn(pred, gy.unsqueeze(0)) +
-                model.bce_loss_fn(pred, gy.unsqueeze(0))
-            )
-        transformed_losses.append(sum(losses) / len(losses))
+        for x, y in data_batch:
+            x, y = x.to(device), y.to(device)
+            mh_samples = independent_mh_sampler(model, G, x, y, n_steps = n_mh_steps)
+            selected = random.sample(mh_samples, k=min(m_samples, len(mh_samples)))
+
+            losses = []
+            for g, _ in selected:
+                gx, gy = apply_albumentations(g, x, y) 
+                pred = model(gx.unsqueeze(0))
+                losses.append(
+                    model.dice_loss_fn(pred, gy.unsqueeze(0)) +
+                    model.bce_loss_fn(pred, gy.unsqueeze(0))
+                )
+            transformed_losses.append(sum(losses) / len(losses))
 
     # Augmented loss
     lc = sum(transformed_losses) / batch_size
@@ -106,10 +108,12 @@ def primal_dual_augmentation(model, data_batch, G, optimizer, gamma, epsilon=0.0
     # Backprop and update
     optimizer.zero_grad()
     L_total.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
     optimizer.step()
 
     # Dual update
-    gamma = max(0, gamma + eta_d * slack.item())
+    with torch.no_grad():
+        gamma = max(0, gamma + eta_d * slack.item())
 
     return L_total.item(), gamma
 
