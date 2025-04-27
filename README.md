@@ -139,7 +139,3 @@ This project uses conda with a list of dependencies in the environment.yml and e
 ```conda env create --name solafune-deforestation-gpu --file environment_cuda.yml```
 
 ```conda activate solafune-deforestation-cpu``` or ```conda activate solafune-deforestation-gpu``` given you preffered training device.
-
-
-## Configuration
-All hyperparameters, paths, and model settings are stored in `src/config.py`. Edit this file to customize training or inference behavior.
