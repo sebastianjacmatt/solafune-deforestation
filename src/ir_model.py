@@ -6,7 +6,6 @@ import pytorch_lightning as pl
 import segmentation_models_pytorch as smp
 from timm.optim import create_optimizer_v2
 from timm.scheduler import create_scheduler_v2
-from torch.utils.checkpoint import checkpoint
 
 # Append project paths
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
@@ -95,12 +94,6 @@ class IRModel(pl.LightningModule):
 
         return loss
 
-    def _to_feature_list(self, encoder_out):
-        """
-        Convert encoder output to a list, handling both OrderedDict and list inputs.
-        """
-        return list(encoder_out.values()) if isinstance(encoder_out, dict) else encoder_out
-
     def interpolation_robustness_step(self, batch):
         """
         Interpolation robustness step with L_int regularization.
@@ -177,9 +170,8 @@ class IRModel(pl.LightningModule):
         w = torch.rand(e_x.size(0), 1, 1, 1, device=e_x.device)
         delta = e_x_prime - e_x
 
-        #TODO:with torch.amp.autocast(device_type="cuda" if torch.cuda.is_available() else "cpu"):
         z_interp = e_x + w * self.T_psi(delta)
-        z_feats = feats_d1 # TODO:Copy here
+        z_feats = feats_d1
         z_feats[-1] = z_interp
         decoder_out_z = self.decoder(*z_feats)
         logits_interp = self.segmentation_head(decoder_out_z)
@@ -190,7 +182,6 @@ class IRModel(pl.LightningModule):
         z_w1 = e_x + self.T_psi(delta)
         l2_loss = F.mse_loss(z_w1, e_x_prime)
 
-        #del z, z_prime, delta, z_interp, logits_interp, z_w1 # optimization
         return loss_cls + l2_loss
 
     def IoU_out(self, loss, logits_mask, mask):

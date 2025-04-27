@@ -37,13 +37,6 @@ def main():
     hyperparameter_tuning()
     """
 
-
-    #TODO:Optimizations
-    """# training with interpolation robustness is extremly memory intensive, to ensure clear gpu before training run the command nvidia-smi
-    torch.cuda.empty_cache() # empty cache before training
-    gc.collect() # garbage collection
-    #you can avoid fragmentation by setting this env_variable $env:PYTORCH_CUDA_ALLOC_CONF="expandable_segments:True" 
-    """
     # 1) Train
     model, train_loader, val_loader = train_model(use_oba=False, use_icl=False, use_ir=True)
 
