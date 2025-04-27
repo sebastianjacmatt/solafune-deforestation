@@ -8,7 +8,7 @@ DATASET_PATH = BASE_DIR / "data"
 TRAIN_IMAGES_PATH = DATASET_PATH / "train_images"
 EVAL_IMAGES_PATH = DATASET_PATH / "evaluation_images"
 TRAIN_ANNOTATIONS_PATH = DATASET_PATH / "train_annotations.json"
-SEPARATE_BACKGROUND_IMAGES = DATASET_PATH / "background_images"
+SEPARATE_BACKGROUND_IMAGES = DATASET_PATH / "background_images_set_separate"
 
 # Define other paths
 

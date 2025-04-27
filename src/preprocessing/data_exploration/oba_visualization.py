@@ -127,7 +127,7 @@ def visualize_external_background_pair(
         num_oba_objects=0,  # No objects
         background_root=str(background_root),
         background_prob=1.0,
-        extract_from_same_image=True
+        extract_from_same_image=False
     )
 
     # External background + Pasted objects
@@ -142,7 +142,7 @@ def visualize_external_background_pair(
         num_oba_objects=num_oba_objects,
         background_root=str(background_root),
         background_prob=1.0,
-        extract_from_same_image=True
+        extract_from_same_image=False
     )
 
     # Visualize both samples
