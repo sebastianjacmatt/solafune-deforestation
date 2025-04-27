@@ -20,7 +20,6 @@ from torch.utils.data import DataLoader
 from inference_utils import run_inference
 from postprocess import PostProcess
 import torch
-import gc
 
 torch.cuda.empty_cache()
 torch.set_float32_matmul_precision("high")
@@ -39,8 +38,6 @@ def main():
 
     # 1) Train
     model, train_loader, val_loader = train_model(use_oba=False, use_icl=False, use_ir=True)
-
-
 
     # 2) Inference on val set
     run_inference(model, val_loader, VAL_PRED_DIR)

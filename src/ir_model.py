@@ -11,7 +11,7 @@ from timm.scheduler import create_scheduler_v2
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(os.path.join(project_root, "src"))
 
-from preprocessing.data_exploration.ir_visualization import plot_domain_split
+from preprocessing.data_exploration.ir_plot_interp import plot_domain_interp
 from config import EPOCHS, CLASS_NAMES, OPTIMIZER, LEARNING_RATE_OPT, WEIGHT_DECAY, SCHEDULER, MIN_LEARNING_RATE, WARMUP_LEARNING_RATE, IR_LAMBDA, T_PSI, CHANNELS
 
 class IRModel(pl.LightningModule):
@@ -278,12 +278,15 @@ class IRModel(pl.LightningModule):
         
         # Save interpolation visualization if available
         if self.ir_vis["image_d1"] is not None:
-            plot_domain_split(
-                orig=self.ir_vis["image_d1"][0].sigmoid().cpu().numpy(),
-                dom1=self.ir_vis["image_d2"][0].sigmoid().cpu().numpy(),
-                dom2=self.ir_vis["image_z1"][0].sigmoid().cpu().numpy(),
+            dom1 = self.ir_vis["image_d1"][0].sigmoid().cpu().numpy()
+            dom2 = self.ir_vis["image_d2"][0].sigmoid().cpu().numpy()
+            zint = self.ir_vis["image_z1"][0].sigmoid().cpu().numpy()
+            plot_domain_interp(
+                dom1=dom1,
+                dom2=dom2,
+                z_interp=zint,
                 channel_groups=CHANNELS,
-                save_path=f"outputs/ir_vis/ir_visualization_epoch_{self.current_epoch}.png",
+                save_path=f"outputs/ir_vis/epoch_{self.current_epoch}.png",
                 show=False
             )
         # reset ir_vis every epoch

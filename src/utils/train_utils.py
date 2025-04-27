@@ -8,6 +8,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint, LearningRateMonitor, TQ
 from pytorch_lightning.loggers import TensorBoardLogger
 import torch
 import segmentation_models_pytorch as smp
+from pytorch_lightning.callbacks import EarlyStopping
 
 from torch.utils.data import DataLoader
 from dataset import TrainValDataset, OBAValDataset
@@ -139,6 +140,50 @@ def prepare_dataloaders(augmentation, use_ir=False):
     )
     return train_loader, val_loader
 
+def ir_get_trainer():
+    """
+    Configures and returns a PyTorch Trainer spesific for Interpolation Robustness.
+
+    Includes Checkpoint, learning rate monitor,
+    progress bar and tensor board logger.
+
+    Returns:
+        pytorch_lightning.Trainer: A configured Trainer primed for training.
+    """
+    seed_everything(SEED)
+
+    checkpoint_callback = ModelCheckpoint(
+        dirpath=TRAIN_OUTPUT_DIR, filename="best_f1_05",
+        save_weights_only=True, save_top_k=1,
+        monitor="val/f1", mode="max", save_last=False,
+    )
+    lr_monitor   = LearningRateMonitor(logging_interval="step")
+    progress_bar = TQDMProgressBar(leave=True)
+    early_stop   = EarlyStopping(
+        monitor="val/f1",
+        mode="max",
+        patience=2,
+        verbose=True,
+        strict=False,
+    )
+    tb_logger = TensorBoardLogger(save_dir=TRAIN_OUTPUT_DIR, name=None)
+
+    trainer = Trainer(
+        max_epochs=EPOCHS,
+        callbacks=[checkpoint_callback, lr_monitor, progress_bar, early_stop],  # include it here
+        logger=[tb_logger],
+        precision="16-mixed",
+        deterministic=True,
+        benchmark=False,
+        sync_batchnorm=False,
+        check_val_every_n_epoch=1,
+        default_root_dir=".",
+        accelerator="gpu",
+        devices=1,
+        log_every_n_steps=1,
+    )
+    return trainer
+
 def get_trainer():
     """
     Configures and returns a PyTorch Trainer.
@@ -180,7 +225,6 @@ def get_trainer():
     )
     return trainer
 
-
 def train_model(use_oba=False, use_icl=False, use_ir=False):
     """
     Runs the training loop for the model
@@ -213,30 +257,7 @@ def train_model(use_oba=False, use_icl=False, use_ir=False):
         train_loader, val_loader = prepare_dataloaders(get_augmentations())
     
     if use_ir:
-        #TODO: Impl warmup training
-        """
-        warmup_epocs = WARMUP_EPOCHS
-        train_loader, val_loader = prepare_dataloaders(get_augmentations(), use_ir=False)
-        model = IRModel(use_ir=False)
-        trainer = get_trainer()
 
-        trainer.fit(
-            model,
-            train_dataloaders=train_loader,
-            val_dataloaders=val_loader,
-        )
-
-        train_loader, val_loader = prepare_dataloaders(get_augmentations(), use_ir=True)
-        model.use_ir = True  # flip flag inside the model, assuming you handle it internally
-        trainer = get_trainer()
-        
-        trainer.fit(
-            model,
-            train_dataloaders=train_loader,
-            val_dataloaders=val_loader,
-        )
-
-        """
         train_loader, val_loader = prepare_dataloaders(get_augmentations(), use_ir=True)
         model = IRModel(use_ir=True)
     elif use_ir & use_oba:
