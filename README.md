@@ -132,8 +132,7 @@ The OBA pipeline is modular and can be activated by setting the `use_oba` flag i
 #### Invariance-Constrained Learning (ICL)
 
 **Method description:**  
-Invariance-Constrained Learning (ICL) is an automatic data augmentation approach where augmentations are selected dynamically based on how well the model maintains semantic consistency after transformations.  
-Instead of applying fixed augmentations, the method uses a Monte Carlo Markov Chain (MCMC) sampler to propose and accept/reject augmentations based on their effect on the model's loss, promoting invariance to transformations that the model initially struggles with.
+ICL addresses the challenge of choosing when and which augmentations should be applied during training. It does this by framing augmentation as an invariance-constrained learning problem and using Monte Carlo Markov Chain (MCMC) sampling, specifically the Metropolis-Hastings (MH) variant, to dynamically decide on augmentations for each training batch.
 
 **Implementation:**  
 The ICL pipeline is mainly implemented in the `src/invariance_constrained.py` file:
@@ -152,18 +151,7 @@ ICL is integrated into the training pipeline inside `src/utils/train_utils.py`:
 Interpolation Robustness (IR) addresses domain shift by encouraging the model to generalize between interpolated representations of different domains. In this project, spectral bands are treated as domains. The interpolation process is adapted to segmentation tasks, treating them as pixel-wise classification.
 
 **Implementation:**  
-The IR pipeline is primarily implemented in a separate model in `src/ir_model.py`:
-- **`interpolation_step()`**: Computes the forward pass using interpolated features between two domain-specific images (adapted from the original paper's equations).
-- **`int_loss()`**: Calculates the interpolation loss, combining classification and regularization terms.
-
-Key components and modifications:
-- **`Tψ`** (learned interpolation function) is defined and imported from `config.py`.
-- The interpolation equations are adapted for the segmentation task but follow the spirit of the original Interpolation Robustness method.
-
-Integration into the training code:
-- New flags are added to `src/main_train.py` and `src/train_utils.py` to enable or disable IR during training.
-- Conditional dataloading logic is introduced in `src/dataset.py` to load two domain-specific images per sample.
-- Helper functions for creating domain-specific images are defined in `src/data_utils.py` (see `domain_image_split()`).
+The Applied Interpolation Robustness pipeline is mainly implemented in a seperate model src/ir_model.py as it does extensive changes to our training forward pass. The main equations of Interpolation Robustness can be found within the return statement of src/ir_model.interpolation_step() (3), and the src/ir_model.int_loss() function (4). Here we also use Tψ (defined and imported from config.py). The papers equations are adapted to the specific task and do not exactly follow the original paper, though they aim to stay as faithful as possible. The segmentation task is treated as pixel-wise classification. In addition to defining a new model we add flags to src/main_train.py,src/train_utils.py. We add some conditional logic following the flags for dataloading two domained images insrc/dataset.py and some helper functions for creating images of different domains in src/data_utils.py. Currently the channels of the image are handled as domains, with the out of domain channels being padded with either zeroing or repititon, se src/data_utils.domain_image_split for more info.
 
 Currently, image channels are treated as separate domains. Out-of-domain channels are handled by padding—either with zeros or repetition—to maintain consistent input dimensions.
 
