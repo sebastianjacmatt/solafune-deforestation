@@ -11,7 +11,6 @@ from timm.scheduler import create_scheduler_v2
 project_root = os.path.abspath(os.path.join(os.getcwd(), ".."))
 sys.path.append(os.path.join(project_root, "src"))
 
-from preprocessing.data_exploration.ir_plot_interp import plot_domain_interp
 from config import EPOCHS, CLASS_NAMES, OPTIMIZER, LEARNING_RATE_OPT, WEIGHT_DECAY, SCHEDULER, MIN_LEARNING_RATE, WARMUP_LEARNING_RATE, IR_LAMBDA, T_PSI, CHANNELS
 
 class IRModel(pl.LightningModule):
