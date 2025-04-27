@@ -162,7 +162,7 @@ def ir_get_trainer():
     early_stop   = EarlyStopping(
         monitor="val/f1",
         mode="max",
-        patience=2,
+        patience=3,
         verbose=True,
         strict=False,
     )
